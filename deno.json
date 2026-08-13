@@ -1,6 +1,7 @@
 {
   "name": "@hiisi/otso",
   "version": "0.1.0",
+  "description": "A build framework for cross-runtime TypeScript with extended syntax, feature flags, and multi-target compilation.",
   "license": "MPL-2.0",
   "exports": {
     ".": "./mod.ts",
