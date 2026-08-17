@@ -14,11 +14,8 @@
     "@std/testing": "jsr:@std/testing@^1.0.0",
     "@std/path": "jsr:@std/path@^1.0.0",
     "@std/fs": "jsr:@std/fs@^1.0.0",
-    "@hiisi/cfg-ts": "jsr:@hiisi/cfg-ts@^0.1.0",
     "@hiisi/ft-flags": "jsr:@hiisi/ft-flags@^0.1.0",
-    "@hiisi/tgts": "jsr:@hiisi/tgts@^0.1.0",
-    "@hiisi/shimp": "jsr:@hiisi/shimp@^0.1.0",
-    "@hiisi/onlywhen": "jsr:@hiisi/onlywhen@^0.5.3"
+    "@hiisi/tgts": "jsr:@hiisi/tgts@^0.1.0"
   },
   "lint": {
     "include": [
