@@ -24,7 +24,7 @@ It orchestrates the build pipeline:
 
 Write once in `src/`, build to `target/` with one output per runtime.
 
-> **Status:** early development (v0.1.0). The configuration API, type definitions, and CLI argument parsing exist; the `build`, `check`, `dev`, `clean`, and `init` commands are stubs and not yet implemented.
+> **Status:** early development (v0.1.0), not yet published to JSR. The type definitions in `src/types.ts`, the CLI argument parsing in `cli.ts`, and the default configuration constants are written. Every other exported function throws `Not implemented`, including the `build`, `check`, `dev`, and `clean` commands and the whole configuration-loading and pipeline surface. The package does not type-check yet: `deno check mod.ts cli.ts` fails because `@hiisi/tgts` has no published version, and `src/config/` imports a `types.ts` file that does not exist. Importing the package throws at module evaluation, because `src/utils/logger.ts` calls the unimplemented `createLogger` at the top level.
 
 ## Installation
 
@@ -41,7 +41,7 @@ deno add jsr:@hiisi/otso
 - [`@hiisi/shimp`](https://jsr.io/@hiisi/shimp) - Cross-runtime compatibility shims
 - [`@hiisi/onlywhen`](https://jsr.io/@hiisi/onlywhen) - Runtime detection and conditional execution
 
-These packages are declared as dependencies; the pipeline stages that use them are not implemented yet.
+These packages are declared as dependencies; the pipeline stages that use them are not implemented yet. `@hiisi/cfg-ts`, `@hiisi/tgts`, and `@hiisi/shimp` have no published version on JSR, so the dependency graph does not resolve today.
 
 ## Support
 
