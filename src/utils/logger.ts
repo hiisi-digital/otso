@@ -62,11 +62,60 @@ export interface LoggerOptions {
  * - Configure color output
  * - Set up output function
  */
-export function createLogger(_options?: LoggerOptions): Logger {
-  // TODO: Parse options with defaults
-  // TODO: Create log functions for each level
-  // TODO: Return Logger interface
-  throw new Error("Not implemented: createLogger");
+export function createLogger(options: LoggerOptions = {}): Logger {
+  const level = options.level ?? "info";
+  // Colour is opt-out rather than always-on: piping a build log into a file
+  // should not fill it with escape codes. When the caller says nothing, ask the
+  // runtime whether stdout is a terminal, and fall back to plain when there is
+  // no way to ask, which is every non-Deno runtime today.
+  const colors = options.colors ?? isTerminal();
+  const out = options.output ?? ((line: string) => console.log(line));
+  // `success` is not a level: it is an info-level message the caller wants
+  // marked as an outcome. Keeping it out of LogLevel means a threshold of
+  // "warn" silences it along with every other info line, which is what someone
+  // quieting a build expects. The colour is the only thing that differs.
+  const emit = (
+    msgLevel: LogLevel,
+    message: string,
+    args: unknown[],
+    tint?: string,
+  ) => {
+    if (!shouldLog(msgLevel, level)) return;
+    const rendered = args.length > 0 ? `${message} ${args.map(render).join(" ")}` : message;
+    const line = formatMessage(msgLevel, rendered, { ...options, colors: false });
+    out(colors ? `${tint ?? getLevelColor(msgLevel)}${line}${COLORS.reset}` : line);
+  };
+  return {
+    level,
+    debug: (m, ...a) => emit("debug", m, a),
+    info: (m, ...a) => emit("info", m, a),
+    warn: (m, ...a) => emit("warn", m, a),
+    error: (m, ...a) => emit("error", m, a),
+    success: (m, ...a) => emit("info", m, a, COLORS.green),
+  };
+}
+
+/** Whether stdout is a terminal, as far as the running runtime will say. */
+function isTerminal(): boolean {
+  const g = globalThis as {
+    Deno?: { stdout?: { isTerminal?: () => boolean } };
+    process?: { stdout?: { isTTY?: boolean } };
+  };
+  if (g.Deno?.stdout?.isTerminal) return g.Deno.stdout.isTerminal();
+  if (g.process?.stdout) return g.process.stdout.isTTY === true;
+  return false;
+}
+
+/** Renders one interpolated argument, keeping objects readable rather than [object Object]. */
+function render(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (value instanceof Error) return value.stack ?? value.message;
+  try {
+    return JSON.stringify(value) ?? String(value);
+  } catch {
+    // Cyclic, or something JSON refuses. Say so rather than throwing from a log call.
+    return String(value);
+  }
 }
 
 /**
@@ -83,14 +132,16 @@ export function createLogger(_options?: LoggerOptions): Logger {
  * - Add prefix if configured
  */
 export function formatMessage(
-  _level: LogLevel,
-  _message: string,
-  _options?: LoggerOptions,
+  level: LogLevel,
+  message: string,
+  options?: LoggerOptions,
 ): string {
-  // TODO: Build formatted message
-  // TODO: Add colors if enabled
-  // TODO: Add timestamp and level
-  throw new Error("Not implemented: formatMessage");
+  const parts: string[] = [];
+  if (options?.prefix) parts.push(`[${options.prefix}]`);
+  parts.push(`${level.toUpperCase()}`);
+  parts.push(message);
+  const line = parts.join(" ");
+  return options?.colors ? `${getLevelColor(level)}${line}${COLORS.reset}` : line;
 }
 
 /**
@@ -132,6 +183,13 @@ export function getLevelColor(level: LogLevel): string {
  * @returns Formatted duration string (e.g., "1.23s", "456ms")
  */
 export function formatDuration(ms: number): string {
+  if (ms >= 60_000) {
+    // A build that takes minutes should say so. Reporting "300.00s" makes the
+    // reader do the division, and a watch loop prints this on every rebuild.
+    const minutes = Math.floor(ms / 60_000);
+    const seconds = (ms % 60_000) / 1000;
+    return `${minutes}m ${seconds.toFixed(1)}s`;
+  }
   if (ms >= 1000) {
     return `${(ms / 1000).toFixed(2)}s`;
   }
@@ -168,10 +226,19 @@ export function formatSize(bytes: number): string {
  * - Update message
  * - Clear on stop
  */
-export function createSpinner(_message: string): { stop: (finalMessage?: string) => void } {
-  // TODO: Set up spinner animation
-  // TODO: Return stop function
-  throw new Error("Not implemented: createSpinner");
+export function createSpinner(
+  message: string,
+): { stop: (finalMessage?: string) => void } {
+  // No animation. A spinner writes escape codes on a timer, which is noise in a
+  // log file and a leaked interval if the caller forgets to stop it. The message
+  // is printed once, and stop() prints the outcome; callers get the same
+  // information and the contract stays honest about being non-interactive.
+  console.log(message);
+  return {
+    stop(finalMessage?: string): void {
+      if (finalMessage) console.log(finalMessage);
+    },
+  };
 }
 
 /**
@@ -187,12 +254,25 @@ export function createSpinner(_message: string): { stop: (finalMessage?: string)
  * - Show item count
  */
 export function createProgressBar(
-  _total: number,
-  _width?: number,
+  total: number,
+  width: number = 30,
 ): { update: (current: number, message?: string) => void; finish: () => void } {
-  // TODO: Set up progress tracking
-  // TODO: Return update and finish functions
-  throw new Error("Not implemented: createProgressBar");
+  const filledChar = "=";
+  const emptyChar = "-";
+  return {
+    update(current: number, message?: string): void {
+      // A total of zero means there is nothing to be part-way through, so the
+      // bar reads complete rather than dividing by zero.
+      const ratio = total <= 0 ? 1 : Math.min(1, Math.max(0, current / total));
+      const filled = Math.round(ratio * width);
+      const bar = filledChar.repeat(filled) + emptyChar.repeat(width - filled);
+      const pct = `${Math.round(ratio * 100)}%`.padStart(4);
+      console.log(message ? `[${bar}] ${pct} ${message}` : `[${bar}] ${pct}`);
+    },
+    finish(): void {
+      console.log(`[${filledChar.repeat(width)}] 100%`);
+    },
+  };
 }
 
 /**
@@ -201,8 +281,11 @@ export function createProgressBar(
  * TODO: Handle different terminal types
  */
 export function clearConsole(): void {
-  // TODO: Clear console based on environment
-  throw new Error("Not implemented: clearConsole");
+  // The ANSI sequence rather than a runtime-specific call, because it is the one
+  // thing every terminal understands and needs no capability the tool would
+  // otherwise not ask for. On a non-terminal it writes two harmless characters.
+  if (!isTerminal()) return;
+  console.log("\x1b[2J\x1b[H");
 }
 
 /**

@@ -22,22 +22,25 @@
 // =============================================================================
 
 export type {
-    BuildDiagnostic,
-    BuildResult,
-    CliArgs,
-    CliCommand,
-    FeatureConfig, Logger, LogLevel, OtsoConfig,
-    OtsoPlugin,
-    OutputConfig,
-    OutputFile,
-    OutputFormat,
-    PluginConfig,
-    PluginContext,
-    SourceFile,
-    SourceMapConfig,
-    TargetBuildResult,
-    TsConfigOverrides,
-    WatchConfig
+  BuildDiagnostic,
+  BuildResult,
+  CliArgs,
+  CliCommand,
+  FeatureConfig,
+  Logger,
+  LogLevel,
+  OtsoConfig,
+  OtsoPlugin,
+  OutputConfig,
+  OutputFile,
+  OutputFormat,
+  PluginConfig,
+  PluginContext,
+  SourceFile,
+  SourceMapConfig,
+  TargetBuildResult,
+  TsConfigOverrides,
+  WatchConfig,
 } from "./src/types.ts";
 
 export { BuildError, CliError, ConfigError } from "./src/types.ts";
@@ -47,24 +50,29 @@ export { BuildError, CliError, ConfigError } from "./src/types.ts";
 // =============================================================================
 
 export {
-    findProjectRoot, loadConfig,
-    loadJsonConfig,
-    loadTsConfig, mergeCliArgs,
-    mergeEnvVars
+  findProjectRoot,
+  loadConfig,
+  loadJsonConfig,
+  loadTsConfig,
+  mergeCliArgs,
+  mergeEnvVars,
 } from "./src/config/load.ts";
 
 export {
-    isValidEntryPath,
-    isValidTargetId, validateConfig, validateFeatureConfig,
-    validateOutputConfig, validateTargetConfig
+  isValidEntryPath,
+  isValidTargetId,
+  validateConfig,
+  validateFeatureConfig,
+  validateOutputConfig,
+  validateTargetConfig,
 } from "./src/config/validate.ts";
 
 export {
-    DEFAULT_CONFIG,
-    DEFAULT_OUTPUT_CONFIG,
-    DEFAULT_TARGET_CONFIGS,
-    getDefaultConfig,
-    getDefaultTargetConfig
+  DEFAULT_CONFIG,
+  DEFAULT_OUTPUT_CONFIG,
+  DEFAULT_TARGET_CONFIGS,
+  getDefaultConfig,
+  getDefaultTargetConfig,
 } from "./src/config/defaults.ts";
 
 // =============================================================================
@@ -72,19 +80,34 @@ export {
 // =============================================================================
 
 export {
-    applyTransformers, buildForTarget, createPipeline, createPluginContext, discoverSources, emitFiles, runBuild
+  applyTransformers,
+  buildForTarget,
+  createPipeline,
+  createPluginContext,
+  discoverSources,
+  emitFiles,
+  runBuild,
 } from "./src/build/pipeline.ts";
 
 export type { BuildPipeline, PipelineOptions, PipelineState } from "./src/build/pipeline.ts";
 
 export {
-    buildTarget, cleanTargetOutput, getTargetOutputDir, transformForTarget, writeTargetOutput
+  buildTarget,
+  cleanTargetOutput,
+  getTargetOutputDir,
+  transformForTarget,
+  writeTargetOutput,
 } from "./src/build/target.ts";
 
 export type { TargetBuildOptions } from "./src/build/target.ts";
 
 export {
-    cleanAllOutput, cleanOutputDir, ensureDir, getOutputPath, writeFile, writeOutputFiles
+  cleanAllOutput,
+  cleanOutputDir,
+  ensureDir,
+  getOutputPath,
+  writeFile,
+  writeOutputFiles,
 } from "./src/build/output.ts";
 
 export type { WriteError, WriteOptions, WriteResult } from "./src/build/output.ts";
@@ -93,7 +116,12 @@ export type { WriteError, WriteOptions, WriteResult } from "./src/build/output.t
 // Commands
 // =============================================================================
 
-export { getExitCode, parseBuildOptions, resolveTargets, runBuildCommand } from "./src/commands/build.ts";
+export {
+  getExitCode,
+  parseBuildOptions,
+  resolveTargets,
+  runBuildCommand,
+} from "./src/commands/build.ts";
 export type { BuildCommandOptions } from "./src/commands/build.ts";
 
 export { check, checkTarget, formatCheckResult } from "./src/commands/check.ts";
@@ -110,19 +138,23 @@ export type { CleanError, CleanOptions, CleanResult } from "./src/commands/clean
 // =============================================================================
 
 export {
-    COLORS, createLogger, formatDuration, formatMessage, formatSize,
-    LOG_LEVELS, shouldLog
+  COLORS,
+  createLogger,
+  formatDuration,
+  formatMessage,
+  formatSize,
+  LOG_LEVELS,
+  shouldLog,
 } from "./src/utils/logger.ts";
 
 export type { LoggerOptions } from "./src/utils/logger.ts";
 
-export {
-    basename, copyFile, dirname, exists, extname, isAbsolute, isDirectory,
-    isFile, joinPath, mkdir, normalizePath, readDir, readTextFile, relativePath, remove, resolvePath, stat,
-    walk, writeTextFile
-} from "./src/utils/fs.ts";
-
-export type { FileStat, WalkEntry, WalkOptions } from "./src/utils/fs.ts";
+// Filesystem and path helpers are not re-exported. They were nineteen wrappers
+// over `Deno.*`, `@std/fs` and `@std/path`, every one of them a stub, used
+// nowhere inside this package and pinning it to one runtime in a tool whose
+// whole purpose is producing output for three. Import `@std/fs` and
+// `@std/path` directly; both are already in the import map and both work
+// under Deno, Node and Bun.
 
 // =============================================================================
 // CLI
