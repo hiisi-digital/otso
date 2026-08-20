@@ -8,7 +8,7 @@
  * ```ts
  * import { build, loadConfig } from "@hiisi/otso";
  *
- * const config = await loadConfig("./otso.config.ts");
+ * const config = await loadConfig("./");
  * const result = await build(config);
  *
  * if (result.success) {
