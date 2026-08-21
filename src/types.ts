@@ -1,329 +1,159 @@
 /**
  * @module otso/types
- * Core type definitions for the otso build framework.
+ *
+ * What otso works with: a project, the distributions it produces, and what each
+ * one is built for.
+ *
+ * The vocabulary is borrowed rather than invented. A target is a `tgts` target
+ * and a feature is an `ft-flags` feature, because those are the same two things
+ * `@cfg` asks about, and a build that answered them differently would be
+ * answering a different question than the source is asking.
  */
 
 import type { FeatureId } from "@hiisi/ft-flags";
 import type { TargetId } from "@hiisi/tgts";
 
 // =============================================================================
-// Configuration Types
+// Configuration
 // =============================================================================
 
 /**
- * Output format for compiled code.
+ * One distribution: a name, the target its source is stripped for, and the
+ * features that are on while that happens.
+ *
+ * The name is deno-dist's. It keys the entry in the `dist` block and it names
+ * the output directory, so `node` here is `target/node` on disk.
  */
-export type OutputFormat = "esm" | "cjs" | "iife" | "umd";
+export interface Distribution {
+  /** The `dist` block key this was read from. */
+  readonly name: string;
+  /** The target `@cfg` predicates are evaluated against. */
+  readonly target: TargetId;
+  /** The features that are on for this distribution. */
+  readonly features: ReadonlySet<FeatureId>;
+}
 
 /**
- * Source map configuration.
- */
-export type SourceMapConfig = boolean | "inline" | "external" | "hidden";
-
-/**
- * Otso build configuration.
+ * A project otso can build.
+ *
+ * There is no entry point here, and that is deliberate: deno-dist reads the
+ * `exports` map to find its entries, so naming them again would be a second
+ * copy of a fact that is already written down and already used.
  */
 export interface OtsoConfig {
-  /** Entry point(s) for the build */
-  readonly entry: string | readonly string[];
-  /** Output directory (default: "./target") */
-  readonly outDir?: string;
-  /** Targets to build for */
-  readonly targets: readonly TargetId[];
-  /** Feature flags configuration */
-  readonly features?: FeatureConfig;
-  /** Output configuration */
-  readonly output?: OutputConfig;
-  /** Plugin configuration */
-  readonly plugins?: readonly PluginConfig[];
-  /** Watch mode configuration */
-  readonly watch?: WatchConfig;
-  /** Whether to clean output directory before build */
-  readonly clean?: boolean;
-  /** TypeScript configuration overrides */
-  readonly tsconfig?: string | TsConfigOverrides;
-}
-
-/**
- * Feature flags configuration for the build.
- */
-export interface FeatureConfig {
-  /** Features to enable */
-  readonly enabled?: readonly string[];
-  /** Features to disable (overrides enabled) */
-  readonly disabled?: readonly string[];
-  /** Enable all features by default */
-  readonly enableAll?: boolean;
-}
-
-/**
- * Output configuration.
- */
-export interface OutputConfig {
-  /** Output format (default: "esm") */
-  readonly format?: OutputFormat;
-  /** Whether to bundle output */
-  readonly bundle?: boolean;
-  /** Whether to minify output */
-  readonly minify?: boolean;
-  /** Source map configuration */
-  readonly sourcemap?: SourceMapConfig;
-  /** File extension for output files */
-  readonly extension?: string;
-  /** Whether to preserve directory structure */
-  readonly preserveStructure?: boolean;
-}
-
-/**
- * Watch mode configuration.
- */
-export interface WatchConfig {
-  /** Directories to watch */
-  readonly paths?: readonly string[];
-  /** File patterns to ignore */
-  readonly ignore?: readonly string[];
-  /** Debounce delay in milliseconds */
-  readonly debounce?: number;
-  /** Whether to clear console on rebuild */
-  readonly clearScreen?: boolean;
-}
-
-/**
- * TypeScript configuration overrides.
- */
-export interface TsConfigOverrides {
-  readonly target?: string;
-  readonly module?: string;
-  readonly strict?: boolean;
-  readonly declaration?: boolean;
-  readonly [key: string]: unknown;
+  /** Absolute path to the directory holding `deno.json`. */
+  readonly projectDir: string;
+  /** Where distributions are written, relative to the project. */
+  readonly distDir: string;
+  /** Every distribution the `dist` block declares. */
+  readonly distributions: readonly Distribution[];
+  /** Directory names never staged, on top of the ones always skipped. */
+  readonly exclude: readonly string[];
 }
 
 // =============================================================================
-// Plugin Types
+// Results
 // =============================================================================
 
-/**
- * Plugin configuration.
- */
-export interface PluginConfig {
-  /** Plugin name or path */
-  readonly name: string;
-  /** Plugin options */
-  readonly options?: Readonly<Record<string, unknown>>;
-  /** Whether plugin is enabled */
-  readonly enabled?: boolean;
+/** What staging one distribution came to. */
+export interface StageResult {
+  /** The distribution staged. */
+  readonly distribution: Distribution;
+  /** Absolute path to the staged tree. */
+  readonly stagedDir: string;
+  /** How many files were written, transformed or copied. */
+  readonly fileCount: number;
+  /** Declarations kept across every file. */
+  readonly kept: number;
+  /** Declarations stripped across every file. */
+  readonly stripped: number;
+  /** Anything the transformer had to say, with the file it said it about. */
+  readonly diagnostics: readonly StageDiagnostic[];
 }
 
-/**
- * Plugin interface for extending the build pipeline.
- */
-export interface OtsoPlugin {
-  /** Plugin name for logging/debugging */
-  readonly name: string;
-  /** Called at the start of the build */
-  setup?(context: PluginContext): Promise<void> | void;
-  /** Called to transform source files */
-  transform?(file: SourceFile, context: PluginContext): Promise<SourceFile | null> | SourceFile | null;
-  /** Called after all files are transformed */
-  postTransform?(files: SourceFile[], context: PluginContext): Promise<SourceFile[]> | SourceFile[];
-  /** Called after build is complete */
-  teardown?(context: PluginContext): Promise<void> | void;
-}
-
-/**
- * Context provided to plugins during build.
- */
-export interface PluginContext {
-  /** The current target being built */
-  readonly target: TargetId;
-  /** The full build configuration */
-  readonly config: OtsoConfig;
-  /** Enabled features for this build */
-  readonly enabledFeatures: ReadonlySet<FeatureId>;
-  /** Logger for plugin output */
-  readonly logger: Logger;
-  /** Add a file to the build */
-  addFile(file: SourceFile): void;
-  /** Remove a file from the build */
-  removeFile(path: string): void;
-  /** Emit a diagnostic */
-  emitDiagnostic(diagnostic: BuildDiagnostic): void;
-}
-
-// =============================================================================
-// Source File Types
-// =============================================================================
-
-/**
- * A source file in the build.
- */
-export interface SourceFile {
-  /** File path relative to project root */
-  readonly path: string;
-  /** File content */
-  content: string;
-  /** Source map (if any) */
-  map?: string;
-  /** Whether this file has been transformed */
-  transformed?: boolean;
-  /** Metadata attached by plugins */
-  metadata?: Record<string, unknown>;
-}
-
-// =============================================================================
-// Build Types
-// =============================================================================
-
-/**
- * Build result for a single target.
- */
-export interface TargetBuildResult {
-  /** The target that was built */
-  readonly target: TargetId;
-  /** Whether the build succeeded */
-  readonly success: boolean;
-  /** Output directory for this target */
-  readonly outDir: string;
-  /** Files that were output */
-  readonly files: readonly OutputFile[];
-  /** Diagnostics from the build */
-  readonly diagnostics: readonly BuildDiagnostic[];
-  /** Build duration in milliseconds */
-  readonly duration: number;
-}
-
-/**
- * An output file from the build.
- */
-export interface OutputFile {
-  /** Output file path */
-  readonly path: string;
-  /** File size in bytes */
-  readonly size: number;
-  /** Whether this is a source map */
-  readonly isSourceMap?: boolean;
-}
-
-/**
- * Complete build result for all targets.
- */
-export interface BuildResult {
-  /** Whether all builds succeeded */
-  readonly success: boolean;
-  /** Results per target */
-  readonly targets: readonly TargetBuildResult[];
-  /** Total build duration in milliseconds */
-  readonly duration: number;
-}
-
-/**
- * A diagnostic message from the build process.
- */
-export interface BuildDiagnostic {
+/** Something the transformer noticed while staging a file. */
+export interface StageDiagnostic {
   readonly severity: "error" | "warning" | "info";
   readonly message: string;
-  readonly file?: string;
+  /** Path relative to the project root. */
+  readonly file: string;
   readonly line?: number;
-  readonly column?: number;
-  readonly code?: string;
-  readonly source?: string;
+}
+
+/** What building one distribution came to. */
+export interface BuildTargetResult {
+  readonly distribution: Distribution;
+  readonly success: boolean;
+  /** Absolute path to the built distribution. */
+  readonly outputDir: string;
+  /** The staging step, which ran whether or not the build after it did. */
+  readonly stage: StageResult;
+  /** What deno-dist printed, kept so a failure can be read rather than guessed at. */
+  readonly output: string;
+  readonly durationMs: number;
+}
+
+/** What a whole build came to. */
+export interface BuildResult {
+  readonly success: boolean;
+  readonly targets: readonly BuildTargetResult[];
+  readonly durationMs: number;
+}
+
+/** What checking one distribution came to. */
+export interface CheckTargetResult {
+  readonly distribution: Distribution;
+  readonly success: boolean;
+  /** The compiler's own output, verbatim. */
+  readonly output: string;
+}
+
+/** What a whole check came to. */
+export interface CheckResult {
+  readonly success: boolean;
+  readonly targets: readonly CheckTargetResult[];
 }
 
 // =============================================================================
-// CLI Types
+// CLI
 // =============================================================================
 
-/**
- * CLI command type.
- */
-export type CliCommand = "build" | "check" | "dev" | "clean" | "init" | "help" | "version";
+/** The commands otso answers to. */
+export type CliCommand = "build" | "check" | "clean" | "help" | "version";
 
-/**
- * Parsed CLI arguments.
- */
+/** Command line arguments, once read. */
 export interface CliArgs {
-  /** The command to run */
   readonly command: CliCommand;
-  /** Target(s) to build for */
-  readonly targets?: readonly string[];
-  /** Config file path */
-  readonly config?: string;
-  /** Enable watch mode */
-  readonly watch?: boolean;
-  /** Enable verbose output */
-  readonly verbose?: boolean;
-  /** Enable quiet mode */
-  readonly quiet?: boolean;
-  /** Additional features to enable */
-  readonly features?: readonly string[];
-  /** Features to disable */
-  readonly noFeatures?: readonly string[];
-  /** Positional arguments */
-  readonly positional?: readonly string[];
+  /** Distributions to act on. Empty means all of them. */
+  readonly distributions: readonly string[];
+  /** Features to turn on for every distribution, on top of the config. */
+  readonly features: readonly string[];
+  /** Features to turn off, whatever the config says. */
+  readonly noFeatures: readonly string[];
+  /** Path to the project directory. */
+  readonly projectDir: string;
+  readonly verbose: boolean;
+  readonly quiet: boolean;
+  /** Leave the staged trees in place instead of removing them. */
+  readonly keepStaged: boolean;
 }
 
 // =============================================================================
-// Logger Types
+// Errors
 // =============================================================================
 
-/**
- * Log level for output filtering.
- */
-export type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
-
-/**
- * Logger interface for build output.
- */
-export interface Logger {
-  readonly level: LogLevel;
-  debug(message: string, ...args: unknown[]): void;
-  info(message: string, ...args: unknown[]): void;
-  warn(message: string, ...args: unknown[]): void;
-  error(message: string, ...args: unknown[]): void;
-  success(message: string, ...args: unknown[]): void;
-}
-
-// =============================================================================
-// Error Types
-// =============================================================================
-
-/**
- * Error thrown when configuration is invalid.
- */
+/** The project's configuration cannot be used. */
 export class ConfigError extends Error {
-  constructor(
-    message: string,
-    public readonly field?: string,
-  ) {
-    super(`Configuration error${field ? ` (${field})` : ""}: ${message}`);
+  constructor(message: string, public readonly field?: string) {
+    super(`configuration error${field ? ` (${field})` : ""}: ${message}`);
     this.name = "ConfigError";
   }
 }
 
-/**
- * Error thrown when a build fails.
- */
+/** A build failed, for one distribution or for the run. */
 export class BuildError extends Error {
-  constructor(
-    message: string,
-    public readonly target?: TargetId,
-    public readonly diagnostics?: readonly BuildDiagnostic[],
-  ) {
-    super(`Build failed${target ? ` for ${target}` : ""}: ${message}`);
+  constructor(message: string, public readonly distribution?: string) {
+    super(`build failed${distribution ? ` for ${distribution}` : ""}: ${message}`);
     this.name = "BuildError";
-  }
-}
-
-/**
- * Error thrown when a CLI command fails.
- */
-export class CliError extends Error {
-  constructor(
-    message: string,
-    public readonly exitCode: number = 1,
-  ) {
-    super(message);
-    this.name = "CliError";
   }
 }

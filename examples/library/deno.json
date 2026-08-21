@@ -1,0 +1,38 @@
+{
+  "name": "@hiisi/otso-example-library",
+  "version": "0.1.0",
+  "description": "A library built for deno, node and bun from one source, as an otso example.",
+  "license": "MPL-2.0",
+  "exports": "./mod.ts",
+  "compilerOptions": {
+    "types": [
+      "npm:@types/bun"
+    ]
+  },
+  "distDir": "target",
+  "dist": {
+    "node": {
+      "runtime": "node",
+      "plugins": [
+        "deno-to-node"
+      ]
+    },
+    "bun": {
+      "runtime": "bun",
+      "plugins": [
+        "deno-to-bun"
+      ]
+    },
+    "deno": {
+      "runtime": "deno",
+      "plugins": [
+        "deno-passthrough"
+      ]
+    }
+  },
+  "otso": {
+    "features": [
+      "checksum"
+    ]
+  }
+}

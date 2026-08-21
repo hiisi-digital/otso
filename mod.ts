@@ -1,18 +1,24 @@
 /**
  * @module @hiisi/otso
  *
- * Cross-runtime TypeScript build framework with conditional compilation.
- * Orchestrates @cfg transforms, feature flags, and multi-target builds.
+ * Build one TypeScript codebase into a distribution for deno, node and bun,
+ * with the parts each runtime does not need removed rather than shipped.
+ *
+ * The work splits in two. Where the three runtimes differ and a shared library
+ * can cover the difference, use the shared library and write the code once.
+ * Where it cannot, mark the alternatives with `@cfg` from `@hiisi/cfg-ts` and
+ * otso keeps the one that belongs in each build, the way `#[cfg]` does in Rust.
+ * Packaging the result is `@hiisi/deno-dist`, which otso calls rather than
+ * reimplements.
  *
  * @example
  * ```ts
  * import { build, loadConfig } from "@hiisi/otso";
  *
- * const config = await loadConfig("./");
+ * const config = await loadConfig(".");
  * const result = await build(config);
- *
- * if (result.success) {
- *   console.log("Build complete!");
+ * for (const target of result.targets) {
+ *   console.log(target.distribution.name, target.success ? "ok" : target.output);
  * }
  * ```
  */
@@ -22,119 +28,57 @@
 // =============================================================================
 
 export type {
-  BuildDiagnostic,
   BuildResult,
+  BuildTargetResult,
+  CheckResult,
+  CheckTargetResult,
   CliArgs,
   CliCommand,
-  FeatureConfig,
-  Logger,
-  LogLevel,
+  Distribution,
   OtsoConfig,
-  OtsoPlugin,
-  OutputConfig,
-  OutputFile,
-  OutputFormat,
-  PluginConfig,
-  PluginContext,
-  SourceFile,
-  SourceMapConfig,
-  TargetBuildResult,
-  TsConfigOverrides,
-  WatchConfig,
+  StageDiagnostic,
+  StageResult,
 } from "./src/types.ts";
 
-export { BuildError, CliError, ConfigError } from "./src/types.ts";
+export { BuildError, ConfigError } from "./src/types.ts";
 
 // =============================================================================
 // Configuration
 // =============================================================================
 
 export {
-  findProjectRoot,
+  ALWAYS_EXCLUDED,
+  CONFIG_FILE_NAMES,
+  DEFAULT_DIST_DIR,
+  findManifest,
   loadConfig,
-  loadJsonConfig,
-  loadTsConfig,
-  mergeCliArgs,
-  mergeEnvVars,
-} from "./src/config/load.ts";
+  parseConfig,
+} from "./src/config.ts";
 
-export {
-  isValidEntryPath,
-  isValidTargetId,
-  validateConfig,
-  validateFeatureConfig,
-  validateOutputConfig,
-  validateTargetConfig,
-} from "./src/config/validate.ts";
-
-export {
-  DEFAULT_CONFIG,
-  DEFAULT_OUTPUT_CONFIG,
-  DEFAULT_TARGET_CONFIGS,
-  getDefaultConfig,
-  getDefaultTargetConfig,
-} from "./src/config/defaults.ts";
+export type { ConfigOverrides } from "./src/config.ts";
 
 // =============================================================================
-// Build Pipeline
+// Staging
 // =============================================================================
 
-export {
-  applyTransformers,
-  buildForTarget,
-  createPipeline,
-  createPluginContext,
-  discoverSources,
-  emitFiles,
-  runBuild,
-} from "./src/build/pipeline.ts";
-
-export type { BuildPipeline, PipelineOptions, PipelineState } from "./src/build/pipeline.ts";
-
-export {
-  buildTarget,
-  cleanTargetOutput,
-  getTargetOutputDir,
-  transformForTarget,
-  writeTargetOutput,
-} from "./src/build/target.ts";
-
-export type { TargetBuildOptions } from "./src/build/target.ts";
-
-export {
-  cleanAllOutput,
-  cleanOutputDir,
-  ensureDir,
-  getOutputPath,
-  writeFile,
-  writeOutputFiles,
-} from "./src/build/output.ts";
-
-export type { WriteError, WriteOptions, WriteResult } from "./src/build/output.ts";
+export { outputDirFor, removeStaging, stage, stagedDirFor, STAGING_DIR_NAME } from "./src/stage.ts";
 
 // =============================================================================
 // Commands
 // =============================================================================
 
-export {
-  getExitCode,
-  parseBuildOptions,
-  resolveTargets,
-  runBuildCommand,
-} from "./src/commands/build.ts";
-export type { BuildCommandOptions } from "./src/commands/build.ts";
+export { build, buildOne } from "./src/build.ts";
+export type { BuildOptions } from "./src/build.ts";
 
-export { check, checkTarget, formatCheckResult } from "./src/commands/check.ts";
-export type { CheckOptions, CheckResult, TargetCheckResult } from "./src/commands/check.ts";
+export { check, checkOne, entryPoints } from "./src/check.ts";
 
-export { createWatcher, dev, incrementalRebuild } from "./src/commands/dev.ts";
-export type { DevOptions, DevState } from "./src/commands/dev.ts";
+export { clean, cleanTargetFor } from "./src/clean.ts";
+export type { CleanResult } from "./src/clean.ts";
 
-export { clean, cleanAll, cleanTarget, listCleanTargets } from "./src/commands/clean.ts";
-export type { CleanError, CleanOptions, CleanResult } from "./src/commands/clean.ts";
+export { buildDistribution, denoDistCli } from "./src/dist.ts";
 
 // =============================================================================
-// Utilities
+// Output
 // =============================================================================
 
 export {
@@ -147,41 +91,10 @@ export {
   shouldLog,
 } from "./src/utils/logger.ts";
 
-export type { LoggerOptions } from "./src/utils/logger.ts";
-
-// Filesystem and path helpers are not re-exported. They were nineteen wrappers
-// over `Deno.*`, `@std/fs` and `@std/path`, every one of them a stub, used
-// nowhere inside this package and pinning it to one runtime in a tool whose
-// whole purpose is producing output for three. Import `@std/fs` and
-// `@std/path` directly; both are already in the import map and both work
-// under Deno, Node and Bun.
+export type { Logger, LoggerOptions, LogLevel } from "./src/utils/logger.ts";
 
 // =============================================================================
 // CLI
 // =============================================================================
 
 export { HELP_TEXT, main, parseArgs, VERSION } from "./cli.ts";
-
-// =============================================================================
-// High-level API
-// =============================================================================
-
-/**
- * Builds the project with the given configuration.
- *
- * This is the main programmatic entry point for building.
- *
- * @param config - Build configuration
- * @returns Build result with success status
- *
- * TODO: Implement as wrapper around createPipeline and runBuild
- */
-export async function build(_config: OtsoConfig): Promise<BuildResult> {
-  // TODO: Create pipeline with config
-  // TODO: Run build
-  // TODO: Return result
-  throw new Error("Not implemented: build");
-}
-
-// Import for build function signature
-import type { BuildResult, OtsoConfig } from "./src/types.ts";

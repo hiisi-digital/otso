@@ -1,0 +1,8 @@
+deno 2.9.5
+{"process.env":true,"process.cwd()":true,"process.platform":true,"process.exit":true,"import.meta.main":true,"import.meta.dirname":true,"globalThis.Deno":true,"globalThis.Bun":false,"Worker global":true,"navigator.userAgent":true,"crypto.subtle":true,"performance.now":true,"Deno.permissions":true,"process.getuid":true,"process.memoryUsage":true,"process.hrtime.bigint":true,"os.availableParallelism":true}
+
+node v26.7.0
+{"process.env":true,"process.cwd()":true,"process.platform":true,"process.exit":true,"import.meta.main":true,"import.meta.dirname":true,"globalThis.Deno":false,"globalThis.Bun":false,"Worker global":false,"navigator.userAgent":true,"crypto.subtle":true,"performance.now":true,"Deno.permissions":false,"process.getuid":true,"process.memoryUsage":true,"process.hrtime.bigint":true,"os.availableParallelism":true}
+
+bun 1.4.0
+{"process.env":true,"process.cwd()":true,"process.platform":true,"process.exit":true,"import.meta.main":true,"import.meta.dirname":true,"globalThis.Deno":false,"globalThis.Bun":true,"Worker global":true,"navigator.userAgent":true,"crypto.subtle":true,"performance.now":true,"Deno.permissions":false,"process.getuid":true,"process.memoryUsage":true,"process.hrtime.bigint":true,"os.availableParallelism":true}
