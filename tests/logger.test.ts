@@ -14,8 +14,6 @@ import { describe, it } from "@std/testing/bdd";
 import {
   COLORS,
   createLogger,
-  createProgressBar,
-  createSpinner,
   formatDuration,
   formatMessage,
   formatSize,
@@ -159,55 +157,6 @@ describe("formatMessage", () => {
   it("adds no escape codes unless asked", () => {
     assertFalse(formatMessage("error", "x").includes("\x1b["));
     assert(formatMessage("error", "x", { colors: true }).includes("\x1b["));
-  });
-});
-
-describe("progress and spinner", () => {
-  it("fills the bar in proportion, and clamps outside the range", () => {
-    const seen: string[] = [];
-    const original = console.log;
-    console.log = (l: string) => void seen.push(l);
-    try {
-      const bar = createProgressBar(10, 10);
-      bar.update(0);
-      bar.update(5);
-      bar.update(10);
-      bar.update(50);
-      bar.update(-1);
-      bar.finish();
-    } finally {
-      console.log = original;
-    }
-    assertStringIncludes(seen[0], "  0%");
-    assertStringIncludes(seen[1], " 50%");
-    assertStringIncludes(seen[2], "100%");
-    assertStringIncludes(seen[3], "100%", "over the total clamps rather than overflowing");
-    assertStringIncludes(seen[4], "  0%", "under zero clamps too");
-    assertStringIncludes(seen[5], "100%");
-  });
-
-  it("reads a zero total as complete rather than dividing by zero", () => {
-    const seen: string[] = [];
-    const original = console.log;
-    console.log = (l: string) => void seen.push(l);
-    try {
-      createProgressBar(0, 4).update(0);
-    } finally {
-      console.log = original;
-    }
-    assertStringIncludes(seen[0], "100%");
-  });
-
-  it("prints the message once and the outcome on stop", () => {
-    const seen: string[] = [];
-    const original = console.log;
-    console.log = (l: string) => void seen.push(l);
-    try {
-      createSpinner("working").stop("done");
-    } finally {
-      console.log = original;
-    }
-    assertEquals(seen, ["working", "done"]);
   });
 });
 

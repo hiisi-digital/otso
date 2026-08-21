@@ -1,269 +1,237 @@
-#!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-run
+#!/usr/bin/env -S deno run --allow-read --allow-write --allow-env --allow-run --allow-net
 
 /**
  * @module otso/cli
  *
- * Command-line interface for the otso build framework.
+ * The command line front end.
  *
- * Usage:
- *   otso build [--target=<target>] [--clean] [--features=<features>]
- *   otso check [--target=<target>]
- *   otso dev [--target=<target>]
- *   otso clean [--target=<target>]
- *   otso init
- *   otso --help
- *   otso --version
+ * ```
+ * otso build [<distribution>...] [--feature <id>] [--no-feature <id>]
+ * otso check [<distribution>...]
+ * otso clean [<distribution>...]
+ * ```
  */
 
+import { build } from "./src/build.ts";
+import { check } from "./src/check.ts";
+import { clean } from "./src/clean.ts";
+import { loadConfig } from "./src/config.ts";
+import { createLogger, formatDuration } from "./src/utils/logger.ts";
+import { ConfigError } from "./src/types.ts";
 import type { CliArgs, CliCommand } from "./src/types.ts";
 
-/**
- * CLI version (should match deno.json version)
- */
+/** Kept in step with the version in deno.json by hand, and checked by a test. */
 export const VERSION = "0.1.0";
 
-/**
- * CLI help text
- */
-export const HELP_TEXT = `
-otso - Cross-runtime TypeScript build framework
+/** What `otso --help` prints. */
+export const HELP_TEXT = `otso - cross-runtime TypeScript builds from one source
 
 USAGE:
-  otso <command> [options]
+  otso <command> [distribution...] [options]
 
 COMMANDS:
-  build     Build the project for configured targets
-  check     Type-check the project with @cfg support
-  dev       Watch mode with hot rebuilds
-  clean     Remove build output directories
-  init      Initialize a new otso project
+  build     Strip the source for each distribution and package it
+  check     Type-check what each distribution is built from
+  clean     Remove built distributions and staged trees
+
+With no distribution named, a command acts on every distribution the
+deno.json \`dist\` block declares.
 
 OPTIONS:
-  -t, --target <id>     Build for specific target(s)
-  -c, --config <path>   Use a specific config file
-  -f, --feature <id>    Enable a feature flag
-  --no-feature <id>     Disable a feature flag
-  --clean               Clean output before building
-  -w, --watch           Enable watch mode
-  -v, --verbose         Verbose output
-  -q, --quiet           Suppress non-error output
-  -h, --help            Show this help message
-  --version             Show version number
+  -f, --feature <id>      Turn a feature on for every distribution
+      --no-feature <id>   Turn a feature off, whatever the config says
+  -C, --dir <path>        Act on the project in <path> (default: .)
+      --keep-staged       Leave staged trees in place after a build
+  -v, --verbose           Say more
+  -q, --quiet             Say nothing but errors
+  -h, --help              Print this
+      --version           Print the version
 
 EXAMPLES:
   otso build
-  otso build --target=node --target=deno
-  otso build --feature=shimp.fs --clean
-  otso check --target=node
-  otso dev
-  otso clean --target=node
-
-For more information, visit: https://github.com/hiisi-digital/otso
+  otso build node bun
+  otso build --feature json --no-feature telemetry
+  otso check node
 `;
 
+/** Flags taking a value, mapped to the field they fill. */
+const VALUE_FLAGS: Readonly<Record<string, "features" | "noFeatures" | "projectDir">> = {
+  "-f": "features",
+  "--feature": "features",
+  "--no-feature": "noFeatures",
+  "-C": "projectDir",
+  "--dir": "projectDir",
+};
+
+/** Flags taking no value. */
+const BOOLEAN_FLAGS: Readonly<Record<string, "verbose" | "quiet" | "keepStaged">> = {
+  "-v": "verbose",
+  "--verbose": "verbose",
+  "-q": "quiet",
+  "--quiet": "quiet",
+  "--keep-staged": "keepStaged",
+};
+
+const COMMANDS: readonly CliCommand[] = ["build", "check", "clean", "help", "version"];
+
 /**
- * Main CLI entry point.
+ * Read the command line.
  *
- * Parses arguments and dispatches to the appropriate command handler.
+ * An argument nothing here recognises is an error rather than something to
+ * ignore. A misspelled `--featrue` that is quietly dropped produces a build
+ * that runs, succeeds, and is missing whatever that feature guarded, which is
+ * the worst of the three available outcomes.
  *
- * TODO: Implement CLI:
- * - Parse command line arguments
- * - Load configuration
- * - Dispatch to command handlers
- * - Handle errors and exit codes
+ * @throws {Error} On an unknown command, an unknown flag, or a flag with no value.
  */
-export async function main(args: string[]): Promise<number> {
-  // TODO: Parse arguments
-  // TODO: Handle --help and --version
-  // TODO: Load configuration
-  // TODO: Dispatch to command
-  // TODO: Return exit code
+export function parseArgs(argv: readonly string[]): CliArgs {
+  const args = {
+    command: "help" as CliCommand,
+    distributions: [] as string[],
+    features: [] as string[],
+    noFeatures: [] as string[],
+    projectDir: ".",
+    verbose: false,
+    quiet: false,
+    keepStaged: false,
+  };
+  if (argv.length === 0) return args;
 
-  const parsedArgs = parseArgs(args);
+  if (argv.includes("-h") || argv.includes("--help")) return { ...args, command: "help" };
+  if (argv.includes("--version")) return { ...args, command: "version" };
 
-  if (parsedArgs.command === "help") {
+  const first = argv[0] ?? "";
+  if (!COMMANDS.includes(first as CliCommand)) {
+    throw new Error(`unknown command "${first}". Try one of ${COMMANDS.join(", ")}`);
+  }
+  args.command = first as CliCommand;
+
+  for (let i = 1; i < argv.length; i++) {
+    const arg = argv[i] ?? "";
+    const equals = arg.indexOf("=");
+    const name = arg.startsWith("--") && equals !== -1 ? arg.slice(0, equals) : arg;
+    const inline = arg.startsWith("--") && equals !== -1 ? arg.slice(equals + 1) : undefined;
+
+    const valueField = VALUE_FLAGS[name];
+    if (valueField !== undefined) {
+      const value = inline ?? argv[++i];
+      if (value === undefined || value === "") {
+        throw new Error(`${name} needs a value`);
+      }
+      if (valueField === "projectDir") args.projectDir = value;
+      else args[valueField].push(value);
+      continue;
+    }
+
+    const booleanField = BOOLEAN_FLAGS[name];
+    if (booleanField !== undefined) {
+      if (inline !== undefined) throw new Error(`${name} takes no value`);
+      args[booleanField] = true;
+      continue;
+    }
+
+    if (arg.startsWith("-")) throw new Error(`unknown option "${arg}"`);
+    args.distributions.push(arg);
+  }
+
+  return args;
+}
+
+/**
+ * Run the CLI.
+ *
+ * @returns The exit code: zero when everything asked for succeeded.
+ */
+export async function main(argv: readonly string[]): Promise<number> {
+  let args: CliArgs;
+  try {
+    args = parseArgs(argv);
+  } catch (error) {
+    console.error(`error: ${error instanceof Error ? error.message : String(error)}`);
+    console.error("run `otso --help` for usage");
+    return 2;
+  }
+
+  if (args.command === "help") {
     console.log(HELP_TEXT);
     return 0;
   }
-
-  if (parsedArgs.command === "version") {
-    console.log(`otso v${VERSION}`);
+  if (args.command === "version") {
+    console.log(`otso ${VERSION}`);
     return 0;
   }
 
-  // TODO: Implement command dispatch
-  console.error(`Command '${parsedArgs.command}' is not yet implemented.`);
-  console.error(`Run 'otso --help' for usage information.`);
-  return 1;
+  const log = createLogger({
+    level: args.quiet ? "error" : args.verbose ? "debug" : "info",
+    prefix: "otso",
+  });
+
+  try {
+    const config = await loadConfig(args.projectDir, {
+      features: args.features,
+      noFeatures: args.noFeatures,
+      only: args.distributions,
+    });
+    return await run(args, config, log);
+  } catch (error) {
+    if (error instanceof ConfigError) {
+      log.error(error.message);
+      return 2;
+    }
+    log.error("unexpected failure", error);
+    return 1;
+  }
 }
 
-/**
- * Parses command line arguments into a structured object.
- *
- * @param args - Raw command line arguments
- * @returns Parsed CLI arguments
- *
- * TODO: Implement argument parsing:
- * - Extract command (first positional arg)
- * - Parse flags (--flag, -f)
- * - Parse options (--option=value, --option value)
- * - Handle repeated options (--target=a --target=b)
- */
-export function parseArgs(args: string[]): CliArgs {
-  // Default to help if no args
-  if (args.length === 0) {
-    return { command: "help" };
+async function run(
+  args: CliArgs,
+  config: Awaited<ReturnType<typeof loadConfig>>,
+  log: ReturnType<typeof createLogger>,
+): Promise<number> {
+  if (args.command === "clean") {
+    const { removed } = await clean(config);
+    for (const dir of removed) log.info(`removed ${dir}`);
+    log.success(`cleaned ${removed.length} ${removed.length === 1 ? "directory" : "directories"}`);
+    return 0;
   }
 
-  const firstArg = args[0];
-
-  // Check for --help or -h anywhere
-  if (args.includes("--help") || args.includes("-h")) {
-    return { command: "help" };
+  if (args.command === "check") {
+    const result = await check(config, {
+      onDistribution: (d) => log.info(`checking ${d.name} for ${d.target}`),
+    });
+    for (const target of result.targets) {
+      if (target.success) log.success(`${target.distribution.name} checks clean`);
+      else log.error(`${target.distribution.name} does not check:\n${target.output}`);
+    }
+    return result.success ? 0 : 1;
   }
 
-  // Check for --version
-  if (args.includes("--version")) {
-    return { command: "version" };
-  }
-
-  // Determine command
-  let command: CliCommand = "help";
-  switch (firstArg) {
-    case "build":
-      command = "build";
-      break;
-    case "check":
-      command = "check";
-      break;
-    case "dev":
-      command = "dev";
-      break;
-    case "clean":
-      command = "clean";
-      break;
-    case "init":
-      command = "init";
-      break;
-    case "help":
-      command = "help";
-      break;
-    default:
-      // Unknown command
-      command = "help";
-  }
-
-  // TODO: Parse remaining arguments
-  const targets: string[] = [];
-  const features: string[] = [];
-  const noFeatures: string[] = [];
-  let config: string | undefined;
-  let watch = false;
-  let verbose = false;
-  let quiet = false;
-
-  for (let i = 1; i < args.length; i++) {
-    const arg = args[i];
-
-    if (arg.startsWith("--target=")) {
-      targets.push(arg.slice("--target=".length));
-    } else if (arg === "-t" || arg === "--target") {
-      if (i + 1 < args.length) {
-        targets.push(args[++i]);
-      }
-    } else if (arg.startsWith("--config=")) {
-      config = arg.slice("--config=".length);
-    } else if (arg === "-c" || arg === "--config") {
-      if (i + 1 < args.length) {
-        config = args[++i];
-      }
-    } else if (arg.startsWith("--feature=")) {
-      features.push(arg.slice("--feature=".length));
-    } else if (arg === "-f" || arg === "--feature") {
-      if (i + 1 < args.length) {
-        features.push(args[++i]);
-      }
-    } else if (arg.startsWith("--no-feature=")) {
-      noFeatures.push(arg.slice("--no-feature=".length));
-    } else if (arg === "--no-feature") {
-      if (i + 1 < args.length) {
-        noFeatures.push(args[++i]);
-      }
-    } else if (arg === "-w" || arg === "--watch") {
-      watch = true;
-    } else if (arg === "-v" || arg === "--verbose") {
-      verbose = true;
-    } else if (arg === "-q" || arg === "--quiet") {
-      quiet = true;
+  const result = await build(config, {
+    verbose: args.verbose,
+    keepStaged: args.keepStaged,
+    onDistribution: (d) =>
+      log.info(`building ${d.name} for ${d.target}${describeFeatures(d.features)}`),
+  });
+  for (const target of result.targets) {
+    const { name } = target.distribution;
+    if (target.success) {
+      log.success(
+        `${name} -> ${target.outputDir} (${target.stage.kept} kept, ` +
+          `${target.stage.stripped} stripped, ${formatDuration(target.durationMs)})`,
+      );
+    } else {
+      log.error(`${name} failed:\n${target.output}`);
+      log.info(`the staged tree is at ${target.stage.stagedDir}`);
     }
   }
-
-  return {
-    command,
-    targets: targets.length > 0 ? targets : undefined,
-    config,
-    watch,
-    verbose,
-    quiet,
-    features: features.length > 0 ? features : undefined,
-    noFeatures: noFeatures.length > 0 ? noFeatures : undefined,
-  };
+  log.info(`${result.targets.length} built in ${formatDuration(result.durationMs)}`);
+  return result.success ? 0 : 1;
 }
 
-/**
- * Dispatches to the appropriate command handler.
- *
- * @param args - Parsed CLI arguments
- * @returns Exit code
- *
- * TODO: Implement dispatch:
- * - Load configuration
- * - Call appropriate command handler
- * - Handle errors
- */
-export async function dispatch(_args: CliArgs): Promise<number> {
-  // TODO: Implement command dispatch
-  throw new Error("Not implemented: dispatch");
+function describeFeatures(features: ReadonlySet<string>): string {
+  return features.size === 0 ? "" : ` with ${[...features].sort().join(", ")}`;
 }
 
-/**
- * Prints an error message to stderr.
- *
- * @param message - Error message to print
- */
-export function printError(message: string): void {
-  console.error(`\x1b[31merror:\x1b[0m ${message}`);
-}
-
-/**
- * Prints a warning message to stderr.
- *
- * @param message - Warning message to print
- */
-export function printWarning(message: string): void {
-  console.error(`\x1b[33mwarning:\x1b[0m ${message}`);
-}
-
-/**
- * Prints a success message to stdout.
- *
- * @param message - Success message to print
- */
-export function printSuccess(message: string): void {
-  console.log(`\x1b[32m✓\x1b[0m ${message}`);
-}
-
-/**
- * Prints an info message to stdout.
- *
- * @param message - Info message to print
- */
-export function printInfo(message: string): void {
-  console.log(`\x1b[34minfo:\x1b[0m ${message}`);
-}
-
-// Run CLI if this is the main module
 if (import.meta.main) {
-  const exitCode = await main(Deno.args);
-  Deno.exit(exitCode);
+  Deno.exit(await main(Deno.args));
 }

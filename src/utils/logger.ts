@@ -1,13 +1,27 @@
 /**
- * Logger utilities for otso build framework
+ * @module otso/logger
  *
- * Provides structured logging with levels, colors, and formatting
- * for build output.
+ * Build output: levels, colour, and the formatting helpers around them.
  *
- * @module
+ * The level vocabulary lives here rather than in the type module, because the
+ * logger is the thing that decides what a level means and a second declaration
+ * of that elsewhere is a second place for it to drift.
  */
 
-import type { Logger, LogLevel } from "../types.ts";
+/** How loud to be. `silent` admits nothing at all. */
+export type LogLevel = "debug" | "info" | "warn" | "error" | "silent";
+
+/** What a build writes its progress to. */
+export interface Logger {
+  /** The threshold this logger was built with. */
+  readonly level: LogLevel;
+  debug(message: string, ...args: unknown[]): void;
+  info(message: string, ...args: unknown[]): void;
+  warn(message: string, ...args: unknown[]): void;
+  error(message: string, ...args: unknown[]): void;
+  /** An info-level line marked as an outcome. */
+  success(message: string, ...args: unknown[]): void;
+}
 
 /**
  * Log level priority (lower = more verbose)
@@ -56,11 +70,6 @@ export interface LoggerOptions {
  *
  * @param options - Logger configuration options
  * @returns A logger instance
- *
- * TODO: Implement logger creation:
- * - Set up log level filtering
- * - Configure color output
- * - Set up output function
  */
 export function createLogger(options: LoggerOptions = {}): Logger {
   const level = options.level ?? "info";
@@ -125,11 +134,6 @@ function render(value: unknown): string {
  * @param message - The message to format
  * @param options - Logger options
  * @returns Formatted message string
- *
- * TODO: Implement formatting:
- * - Add timestamp
- * - Add level indicator with color
- * - Add prefix if configured
  */
 export function formatMessage(
   level: LogLevel,
@@ -214,81 +218,3 @@ export function formatSize(bytes: number): string {
 
   return unitIndex === 0 ? `${size} ${units[unitIndex]}` : `${size.toFixed(2)} ${units[unitIndex]}`;
 }
-
-/**
- * Creates a spinner for long-running operations.
- *
- * @param message - Message to display with the spinner
- * @returns Object with stop() method to stop the spinner
- *
- * TODO: Implement spinner:
- * - Animate spinner characters
- * - Update message
- * - Clear on stop
- */
-export function createSpinner(
-  message: string,
-): { stop: (finalMessage?: string) => void } {
-  // No animation. A spinner writes escape codes on a timer, which is noise in a
-  // log file and a leaked interval if the caller forgets to stop it. The message
-  // is printed once, and stop() prints the outcome; callers get the same
-  // information and the contract stays honest about being non-interactive.
-  console.log(message);
-  return {
-    stop(finalMessage?: string): void {
-      if (finalMessage) console.log(finalMessage);
-    },
-  };
-}
-
-/**
- * Creates a progress bar for tracking build progress.
- *
- * @param total - Total number of items
- * @param width - Width of the progress bar in characters
- * @returns Object with update() method to update progress
- *
- * TODO: Implement progress bar:
- * - Draw progress bar
- * - Update percentage
- * - Show item count
- */
-export function createProgressBar(
-  total: number,
-  width: number = 30,
-): { update: (current: number, message?: string) => void; finish: () => void } {
-  const filledChar = "=";
-  const emptyChar = "-";
-  return {
-    update(current: number, message?: string): void {
-      // A total of zero means there is nothing to be part-way through, so the
-      // bar reads complete rather than dividing by zero.
-      const ratio = total <= 0 ? 1 : Math.min(1, Math.max(0, current / total));
-      const filled = Math.round(ratio * width);
-      const bar = filledChar.repeat(filled) + emptyChar.repeat(width - filled);
-      const pct = `${Math.round(ratio * 100)}%`.padStart(4);
-      console.log(message ? `[${bar}] ${pct} ${message}` : `[${bar}] ${pct}`);
-    },
-    finish(): void {
-      console.log(`[${filledChar.repeat(width)}] 100%`);
-    },
-  };
-}
-
-/**
- * Clears the console output.
- *
- * TODO: Handle different terminal types
- */
-export function clearConsole(): void {
-  // The ANSI sequence rather than a runtime-specific call, because it is the one
-  // thing every terminal understands and needs no capability the tool would
-  // otherwise not ask for. On a non-terminal it writes two harmless characters.
-  if (!isTerminal()) return;
-  console.log("\x1b[2J\x1b[H");
-}
-
-/**
- * Default logger instance with info level
- */
-export const defaultLogger = createLogger({ level: "info" });
