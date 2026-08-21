@@ -1,0 +1,44 @@
+{
+  "name": "@hiisi/otso-example-binary",
+  "version": "0.1.0",
+  "description": "A command line tool built for deno, node and bun from one source, as an otso example.",
+  "license": "MPL-2.0",
+  "exports": {
+    ".": "./mod.ts",
+    "./cli": "./cli.ts"
+  },
+  "compilerOptions": {
+    "types": [
+      "npm:@types/bun"
+    ]
+  },
+  "bin": {
+    "otso-example": "./cli.ts"
+  },
+  "distDir": "target",
+  "dist": {
+    "node": {
+      "runtime": "node",
+      "plugins": [
+        {
+          "id": "deno-to-node",
+          "options": {
+            "cjs": false
+          }
+        }
+      ]
+    },
+    "bun": {
+      "runtime": "bun",
+      "plugins": [
+        "deno-to-bun"
+      ]
+    },
+    "deno": {
+      "runtime": "deno",
+      "plugins": [
+        "deno-passthrough"
+      ]
+    }
+  }
+}
