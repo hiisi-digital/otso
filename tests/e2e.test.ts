@@ -209,6 +209,19 @@ Deno.test("one source, three distributions, one output", async (t) => {
       }
     });
 
+    await t.step("no build machinery reaches the published artifact", async () => {
+      // the deno plugin copies the source manifest with its own keys deleted,
+      // so anything otso adds to it would ride along unless staging took it
+      // back out first
+      const manifest = JSON.parse(
+        await Deno.readTextFile(join(project, "target", "deno", "deno.json")),
+      ) as Record<string, unknown>;
+      for (const key of ["otso", "dist", "distDir"]) {
+        assertFalse(key in manifest, `${key} leaked into the published deno.json`);
+      }
+      assertEquals(manifest["name"], "@hiisi/otso-example-library");
+    });
+
     await t.step("staging leaves nothing behind after a successful build", async () => {
       // a staged tree is a copy of the source under a name nobody looks at, and
       // it sits inside the directory that gets published

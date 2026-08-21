@@ -139,12 +139,15 @@ describe("a command line tool, built for three runtimes", () => {
   });
 
   // Catalogued, not skipped for convenience. The body is real and it fails
-  // today for one reason: deno-dist writes no `bin` entry into any manifest it
-  // generates, so a tool it packages cannot be installed as a command by npm,
-  // bun or deno. The source config here declares `bin` and it is dropped:
-  // the node manifest comes from dnt's `package` block, which deno-dist fills
-  // from an allow-list in getPackageMetadata that has no `bin` in it, and the
-  // bun manifest is assembled field by field with no `bin` among them.
+  // today, for the npm and bun manifests specifically. Both are generated
+  // rather than copied: the node one comes from dnt's `package` block, which
+  // deno-dist fills from an allow-list carrying description, license, author,
+  // homepage, keywords and repository and nothing else, and the bun one is
+  // assembled field by field with no `bin` among them. The deno artifact is a
+  // different case and is not asserted here: its manifest is the source's with
+  // the build keys deleted, so a declared `bin` survives, and it means nothing
+  // either way because deno installs a command from an export rather than from
+  // a bin field.
   // Remove the ignore when deno-dist emits one; nothing here needs to change.
   it.ignore("declares a bin entry so the tool installs as a command", async () => {
     const { project, work } = await built();
