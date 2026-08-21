@@ -27,3 +27,7 @@ package-lock.json
 
 # Deno cache
 .deno
+
+# Build output, including the examples' own
+target
+
