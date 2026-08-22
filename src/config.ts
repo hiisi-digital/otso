@@ -36,15 +36,12 @@ import type { Distribution, OtsoConfig } from "./types.ts";
 /**
  * The manifest names otso looks for, in the order it prefers them.
  *
- * `deno.local.json` first, which is the workspace convention for a manifest that
- * resolves siblings not published yet. Without it a project whose dependencies
- * are still local builds by hand and fails under otso, because the staged tree
- * gets the published-shape manifest and asks a registry for something that is
- * only on disk. It is a development file and is expected to be absent in a
- * release, at which point the list falls through to the next name and nothing
- * about the build changes.
+ * Deno's own names, and nothing else belongs here. A project whose dependencies
+ * are not on a registry yet resolves them with a `links` block in `deno.json`,
+ * which is a file deno already reads, so there is no second manifest for this
+ * tool to know the name of.
  */
-export const CONFIG_FILE_NAMES = ["deno.local.json", "deno.json", "deno.jsonc"] as const;
+export const CONFIG_FILE_NAMES = ["deno.json", "deno.jsonc"] as const;
 
 /** Where distributions land when the manifest does not say. */
 export const DEFAULT_DIST_DIR = "target";
@@ -90,15 +87,7 @@ async function firstExisting(dir: string): Promise<string | undefined> {
   const found = await Promise.all(
     candidates.map(async (path) => [path, await isFile(path)] as const),
   );
-  const hit = found.find(([, ok]) => ok)?.[0];
-  // Say so when the development file wins. Preferring it is deliberate and is
-  // explained above, but it is this tool's own convention rather than
-  // anything deno defines, so a project that happens to have a file by that
-  // name should not find out from a build that behaves oddly.
-  if (hit !== undefined && hit.endsWith("deno.local.json")) {
-    console.error(`otso: using ${hit} in preference to deno.json`);
-  }
-  return hit;
+  return found.find(([, ok]) => ok)?.[0];
 }
 
 async function isFile(path: string): Promise<boolean> {

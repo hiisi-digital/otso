@@ -1,7 +1,6 @@
 {
   "version": "5",
   "specifiers": {
-    "jsr:@hiisi/onlywhen@~0.5.3": "0.5.3",
     "jsr:@std/assert@1": "1.0.19",
     "jsr:@std/assert@^1.0.19": "1.0.19",
     "jsr:@std/internal@^1.0.12": "1.0.14",
@@ -13,9 +12,6 @@
     "npm:typescript@^5.9.2": "5.9.3"
   },
   "jsr": {
-    "@hiisi/onlywhen@0.5.3": {
-      "integrity": "e83c19079c0815d50a89c77b85ab5f635536cb4a7822a838f17d0eba6a35fbf2"
-    },
     "@std/assert@1.0.19": {
       "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
       "dependencies": [
@@ -57,8 +53,9 @@
   "workspace": {
     "dependencies": [
       "jsr:@hiisi/cfg-ts@0.1",
-      "jsr:@hiisi/deno-dist@~0.3.1",
+      "jsr:@hiisi/deno-dist@0.5",
       "jsr:@hiisi/ft-flags@0.2",
+      "jsr:@hiisi/shimp@0.1",
       "jsr:@hiisi/tgts@0.2",
       "jsr:@std/assert@1",
       "jsr:@std/fs@1",
@@ -94,9 +91,17 @@
           "jsr:@std/testing@1"
         ]
       },
+      "jsr:@hiisi/onlywhen@0.6.0": {
+        "dependencies": [
+          "jsr:@hiisi/tgts@0.2",
+          "jsr:@std/assert@1",
+          "jsr:@std/path@1",
+          "jsr:@std/testing@1"
+        ]
+      },
       "jsr:@hiisi/shimp@0.1.0": {
         "dependencies": [
-          "jsr:@hiisi/onlywhen@~0.5.3",
+          "jsr:@hiisi/onlywhen@0.6",
           "jsr:@std/assert@1",
           "jsr:@std/testing@1"
         ]

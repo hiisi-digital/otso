@@ -154,7 +154,7 @@ What does not: nothing here is published. `@hiisi/cfg-ts` asks for
 `@hiisi/ft-flags@^0.2.0` and jsr carries 0.1.2, which is a version wall rather
 than a defect. `probes/upstream_version_wall.ts` demonstrates it and shows the
 two one-line fixes, either of which clears it. Until the packages ship, the
-`links` block in `deno.local.json` is what resolves them.
+`links` block in `deno.json` is what resolves them.
 
 ## Related packages
 

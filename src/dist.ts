@@ -57,11 +57,11 @@ export async function denoDistConfig(cli: string = denoDistCli()): Promise<strin
   // is the manifest's directory. Two was wrong and produced `undefined`
   // silently, which reads exactly like "there is no checkout".
   const root = new URL("../", cli);
-  // The local variant first, for the same reason it exists at all: it is the one
-  // that resolves siblings that are not published yet.
-  const candidates = ["deno.local.json", "deno.json"].map((name) => new URL(name, root));
-  const found = await Promise.all(candidates.map((url) => exists(url)));
-  return candidates[found.indexOf(true)]?.pathname;
+  // deno-dist resolves its own unpublished dependencies through the links block
+  // in this manifest, so there is one name to look for rather than a preference
+  // order over a published shape and a development one.
+  const manifest = new URL("deno.json", root);
+  return (await exists(manifest)) ? manifest.pathname : undefined;
 }
 
 /** Build one distribution from a staged tree. */
