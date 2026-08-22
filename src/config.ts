@@ -90,7 +90,15 @@ async function firstExisting(dir: string): Promise<string | undefined> {
   const found = await Promise.all(
     candidates.map(async (path) => [path, await isFile(path)] as const),
   );
-  return found.find(([, ok]) => ok)?.[0];
+  const hit = found.find(([, ok]) => ok)?.[0];
+  // Say so when the development file wins. Preferring it is deliberate and is
+  // explained above, but it is this tool's own convention rather than
+  // anything deno defines, so a project that happens to have a file by that
+  // name should not find out from a build that behaves oddly.
+  if (hit !== undefined && hit.endsWith("deno.local.json")) {
+    console.error(`otso: using ${hit} in preference to deno.json`);
+  }
+  return hit;
 }
 
 async function isFile(path: string): Promise<boolean> {
