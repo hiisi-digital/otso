@@ -96,6 +96,7 @@
     "../ft-flags",
     "../cfg-ts",
     "../deno-dist",
-    "../shimp"
+    "../shimp",
+    "../onlywhen"
   ]
 }

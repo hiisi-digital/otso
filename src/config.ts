@@ -36,13 +36,10 @@ import type { Distribution, OtsoConfig } from "./types.ts";
 /**
  * The manifest names otso looks for, in the order it prefers them.
  *
- * These are deno's own names and nothing else belongs here. The list used to
- * begin with `deno.local.json`, a private convention for resolving siblings
- * that are not published yet, which put one workspace's habit inside a tool
- * that has no business knowing it. That convention is gone: a `links` block in
- * `deno.json` does the same job in the file deno already reads, so a project
- * with unpublished dependencies stages correctly with no second manifest and
- * no name for otso to special-case.
+ * Deno's own names, and nothing else belongs here. A project whose dependencies
+ * are not on a registry yet resolves them with a `links` block in `deno.json`,
+ * which is a file deno already reads, so there is no second manifest for this
+ * tool to know the name of.
  */
 export const CONFIG_FILE_NAMES = ["deno.json", "deno.jsonc"] as const;
 
