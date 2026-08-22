@@ -4,6 +4,9 @@
   "description": "A library built for deno, node and bun from one source, as an otso example.",
   "license": "MPL-2.0",
   "exports": "./mod.ts",
+  "imports": {
+    "@std/path": "jsr:@std/path@^1.0.0"
+  },
   "compilerOptions": {
     "types": [
       "npm:@types/bun"

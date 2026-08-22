@@ -8,8 +8,7 @@
  * point awaits at the top level, which CommonJS cannot express, so the node
  * distribution is built as an ES module only. The second is that a tool has to
  * be installable as a command, which needs a `bin` entry in the manifest and a
- * shebang on the file it names, and neither is produced today. That one is
- * catalogued at the bottom rather than quietly left out.
+ * shebang on the file it names.
  *
  * @module
  */
@@ -138,18 +137,12 @@ describe("a command line tool, built for three runtimes", () => {
     }
   });
 
-  // Catalogued, not skipped for convenience. The body is real and it fails
-  // today, for the npm and bun manifests specifically. Both are generated
-  // rather than copied: the node one comes from dnt's `package` block, which
-  // deno-dist fills from an allow-list carrying description, license, author,
-  // homepage, keywords and repository and nothing else, and the bun one is
-  // assembled field by field with no `bin` among them. The deno artifact is a
-  // different case and is not asserted here: its manifest is the source's with
-  // the build keys deleted, so a declared `bin` survives, and it means nothing
-  // either way because deno installs a command from an export rather than from
-  // a bin field.
-  // Remove the ignore when deno-dist emits one; nothing here needs to change.
-  it.ignore("declares a bin entry so the tool installs as a command", async () => {
+  // Catalogued while deno-dist emitted no `bin`, and left exactly as written
+  // when it started to. The deno artifact is a different case and is not
+  // asserted here: its manifest is the source's with the build keys deleted, so
+  // a declared `bin` survives, and it means nothing either way because deno
+  // installs a command from an export rather than from a bin field.
+  it("declares a bin entry so the tool installs as a command", async () => {
     const { project, work } = await built();
     try {
       for (const runtime of ["node", "bun"]) {
@@ -167,10 +160,10 @@ describe("a command line tool, built for three runtimes", () => {
   // The other half of the same gap. A `bin` entry is only useful if the file it
   // names starts with a shebang naming the runtime that will run it, and a
   // shebang is per-distribution by nature: it has to be the first line and it
-  // has to say `node` for the npm package and `bun` for the bun one. Nothing
-  // emits one, and no marker on a declaration can, because a shebang is not a
-  // declaration. This also belongs to whatever writes the manifest.
-  it.ignore("puts a runtime-appropriate shebang on the entry it names", async () => {
+  // has to say `node` for the npm package and `bun` for the bun one. No marker
+  // on a declaration can express that, because a shebang is not a declaration,
+  // so it belongs to whatever writes the manifest and that is where it went.
+  it("puts a runtime-appropriate shebang on the entry it names", async () => {
     const { project, work } = await built();
     try {
       const expected: Readonly<Record<string, string>> = {

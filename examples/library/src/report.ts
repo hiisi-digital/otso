@@ -3,13 +3,14 @@
 /**
  * The part that needed no marker at all, which is most of a library.
  *
- * `node:path` and `crypto.subtle` answer the same on all three runtimes, so
- * this file is written once and shipped unchanged to each. It is here to make
+ * `@std/path` is string manipulation with no runtime behaviour to diverge, and
+ * `crypto.subtle` is a Web standard all three implement, so this file is written
+ * once and shipped unchanged to each. It is here to make
  * the ratio visible: the marked file next to it is the exception, and a project
  * where every file looks like that one is reaching for `@cfg` too early.
  */
 
-import { basename, extname } from "node:path";
+import { basename, extname } from "@std/path";
 
 /** What {@link summarise} works out about a file. */
 export interface Summary {

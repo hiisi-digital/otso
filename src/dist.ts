@@ -18,26 +18,63 @@
  */
 
 import type { CommandResult } from "./process.ts";
+import { exists } from "@hiisi/shimp";
 import { runCommand } from "./process.ts";
 
 /**
  * The deno-dist CLI, as a specifier this runtime can execute.
  *
- * Resolved through otso's own import map, so it is a `file:` URL when a
- * checkout is linked in and an `https://jsr.io/...` URL when it is not. Both
- * are things `deno run` accepts.
+ * Resolved through otso's own import map, so it is a `file:` URL when the map
+ * names a path and an `https://jsr.io/...` URL when it names a jsr specifier.
+ * Both are things `deno run` accepts.
+ *
+ * `links` is not enough to make it the first of those, which is worth knowing
+ * because it looks like it should be. The CLI resolves a linked checkout when it
+ * builds the module graph, and `import.meta.resolve` does not see that: it hands
+ * back the jsr URL, the subprocess asks the registry, and a version that is only
+ * a sibling on disk is reported as not existing. A local checkout wants an exact
+ * mapping in `imports` as well.
  */
 export function denoDistCli(): string {
   return import.meta.resolve("@hiisi/deno-dist/cli");
 }
 
+/**
+ * The config deno-dist should run under, when it is a checkout on disk.
+ *
+ * A deno program started by file path resolves its own bare specifiers against
+ * the config in the working directory, not against the one beside the program.
+ * deno-dist is run from the staged tree, so the moment it has any dependency of
+ * its own it looks for it in the staged project's manifest and does not find it.
+ * The symptom names deno-dist's own source file and a package the staged project
+ * never heard of, which is a confusing way to learn this.
+ *
+ * `undefined` for a jsr specifier, which carries its own resolution.
+ */
+export async function denoDistConfig(cli: string = denoDistCli()): Promise<string | undefined> {
+  if (!cli.startsWith("file:")) return undefined;
+  // `<checkout>/src/cli.ts` resolves against `<checkout>/src/`, so one step up
+  // is the manifest's directory. Two was wrong and produced `undefined`
+  // silently, which reads exactly like "there is no checkout".
+  const root = new URL("../", cli);
+  // The local variant first, for the same reason it exists at all: it is the one
+  // that resolves siblings that are not published yet.
+  const candidates = ["deno.local.json", "deno.json"].map((name) => new URL(name, root));
+  const found = await Promise.all(candidates.map((url) => exists(url)));
+  return candidates[found.indexOf(true)]?.pathname;
+}
+
 /** Build one distribution from a staged tree. */
-export function buildDistribution(
+export async function buildDistribution(
   stagedDir: string,
   name: string,
   options: { readonly verbose?: boolean } = {},
 ): Promise<CommandResult> {
-  const args = ["run", "-A", denoDistCli(), "build", name];
+  const cli = denoDistCli();
+  const config = await denoDistConfig(cli);
+  const args = ["run", "-A"];
+  if (config !== undefined) args.push("-c", config);
+  args.push(cli, "build", name);
   if (options.verbose === true) args.push("--verbose");
-  return runCommand(Deno.execPath(), args, stagedDir);
+  return await runCommand(Deno.execPath(), args, stagedDir);
 }

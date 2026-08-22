@@ -103,7 +103,7 @@ export async function stage(
     }
   }));
 
-  await writeStagedManifest(distribution, stagedDir);
+  await writeStagedManifest(distribution, config.projectDir, stagedDir);
 
   return {
     distribution,
@@ -118,15 +118,22 @@ export async function stage(
 /**
  * Write the manifest the staged tree is built from.
  *
- * Three edits to the project's own. The `dist` block is narrowed to the one
+ * Four edits to the project's own. The `dist` block is narrowed to the one
  * distribution being built, so a build of `node` cannot be talked into
  * producing `bun` as well. `distDir` is repointed out of the staging directory,
- * so output lands beside the staged trees rather than inside one. And the
- * `otso` block goes, because it is build machinery and nothing downstream of
- * here has any use for it.
+ * so output lands beside the staged trees rather than inside one. The `otso`
+ * block goes, because it is build machinery and nothing downstream of here has
+ * any use for it. And any import that names a relative path is made absolute.
+ *
+ * That last one is not cosmetic. A staged tree sits two directories below the
+ * dist directory, so a path that resolved from the project root resolves to
+ * nothing from here, and a project that reaches a sibling checkout by path
+ * builds fine by hand and fails the moment it is staged. Making them absolute is
+ * the only edit that keeps the staged tree meaning what the project meant.
  */
 async function writeStagedManifest(
   distribution: Distribution,
+  projectDir: string,
   stagedDir: string,
 ): Promise<void> {
   const path = join(stagedDir, "deno.json");
@@ -134,11 +141,34 @@ async function writeStagedManifest(
   const dist = raw["dist"] as Record<string, unknown>;
   const staged = {
     ...raw,
+    ...(raw["imports"] === undefined
+      ? {}
+      : { imports: absoluteImports(raw["imports"] as Record<string, string>, projectDir) }),
     dist: { [distribution.name]: dist[distribution.name] },
     distDir: "../..",
   };
   delete (staged as Record<string, unknown>)["otso"];
   await Deno.writeTextFile(path, `${JSON.stringify(staged, null, 2)}\n`);
+}
+
+/**
+ * An import map whose relative paths survive being moved.
+ *
+ * Only the entries that name a path are touched. A bare specifier, a `jsr:`,
+ * `npm:` or `node:` target, and an absolute path all mean the same thing from
+ * anywhere and are left exactly as the project wrote them.
+ */
+function absoluteImports(
+  imports: Readonly<Record<string, string>>,
+  projectDir: string,
+): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [specifier, target] of Object.entries(imports)) {
+    out[specifier] = target.startsWith("./") || target.startsWith("../")
+      ? resolve(projectDir, target)
+      : target;
+  }
+  return out;
 }
 
 /**

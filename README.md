@@ -145,16 +145,16 @@ and building all three distributions. The end-to-end test installs each one
 under its own runtime and compares the output, so the claim on this page is a
 test rather than a description.
 
-What does not: a tool cannot be installed as a command yet. deno-dist writes no
-`bin` entry into the manifests it generates and no shebang onto the entry point,
-so `npm install -g` on a built distribution installs nothing runnable. Both are
-covered by tests in `tests/e2e_binary.test.ts`, marked as ignored with the reason
-attached, and both belong in deno-dist rather than here.
+A tool built here also installs as a command: the manifests carry a `bin` entry,
+the entry point carries the right shebang for its runtime, and the file is
+executable. `tests/e2e_binary.test.ts` covers both halves and they run rather
+than sitting ignored.
 
-There is also a version wall in the dependencies that has to clear before the
-suite runs at all: `@hiisi/cfg-ts` asks for `@hiisi/ft-flags@^0.2.0` and no such
-version exists. `probes/upstream_version_wall.ts` demonstrates it and shows the
-two one-line fixes, either of which clears it.
+What does not: nothing here is published. `@hiisi/cfg-ts` asks for
+`@hiisi/ft-flags@^0.2.0` and jsr carries 0.1.2, which is a version wall rather
+than a defect. `probes/upstream_version_wall.ts` demonstrates it and shows the
+two one-line fixes, either of which clears it. Until the packages ship, the
+`links` block in `deno.local.json` is what resolves them.
 
 ## Related packages
 

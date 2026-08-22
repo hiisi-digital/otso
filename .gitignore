@@ -31,3 +31,7 @@ package-lock.json
 # Build output, including the examples' own
 target
 
+# An example's lock is written by whichever build ran last and pins nothing this
+# repo decides: deno-dist pins its own dnt, and the example is built fresh by
+# tests/e2e_binary.test.ts on every run.
+/examples/*/deno.lock
