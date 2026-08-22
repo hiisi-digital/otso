@@ -16,7 +16,7 @@
     "@hiisi/ft-flags": "jsr:@hiisi/ft-flags@^0.2.0",
     "@hiisi/tgts": "jsr:@hiisi/tgts@^0.2.0",
     "@hiisi/cfg-ts": "jsr:@hiisi/cfg-ts@^0.1.0",
-    "@hiisi/deno-dist": "jsr:@hiisi/deno-dist@^0.3.1",
+    "@hiisi/deno-dist": "jsr:@hiisi/deno-dist@^0.5.0",
     "@hiisi/shimp": "jsr:@hiisi/shimp@^0.1.0"
   },
   "lint": {
@@ -65,13 +65,13 @@
     ]
   },
   "tasks": {
-    "test": "deno test --config deno.local.json --allow-read --allow-write --allow-env --allow-run --allow-net tests/",
-    "test:watch": "deno test --config deno.local.json --allow-read --allow-write --allow-env --allow-run --allow-net --watch tests/",
+    "test": "deno test --allow-read --allow-write --allow-env --allow-run --allow-net tests/",
+    "test:watch": "deno test --allow-read --allow-write --allow-env --allow-run --allow-net --watch tests/",
     "lint": "deno lint",
     "lint:fix": "deno lint --fix",
     "fmt": "deno fmt",
     "fmt:check": "deno fmt --check",
-    "check": "deno check --config deno.local.json mod.ts cli.ts",
+    "check": "deno check mod.ts cli.ts",
     "all": "deno task fmt && deno task lint && deno task check && deno task test",
     "prepublish": "deno task all"
   },
@@ -87,9 +87,15 @@
       "tests/",
       "examples/",
       "scripts/",
-      "deno.local.json",
       ".githooks/"
     ]
   },
-  "repository": "https://github.com/hiisi-digital/otso"
+  "repository": "https://github.com/hiisi-digital/otso",
+  "links": [
+    "../tgts",
+    "../ft-flags",
+    "../cfg-ts",
+    "../deno-dist",
+    "../shimp"
+  ]
 }

@@ -57,8 +57,9 @@
   "workspace": {
     "dependencies": [
       "jsr:@hiisi/cfg-ts@0.1",
-      "jsr:@hiisi/deno-dist@~0.3.1",
+      "jsr:@hiisi/deno-dist@0.5",
       "jsr:@hiisi/ft-flags@0.2",
+      "jsr:@hiisi/shimp@0.1",
       "jsr:@hiisi/tgts@0.2",
       "jsr:@std/assert@1",
       "jsr:@std/fs@1",

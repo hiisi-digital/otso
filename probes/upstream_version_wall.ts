@@ -60,7 +60,7 @@ async function editJson(
 
 /** Point a cfg-ts copy's local config at the checkouts it should resolve against. */
 async function linkAgainst(cfgTs: string, tgts: string, ftFlags: string): Promise<void> {
-  await editJson(join(cfgTs, "deno.local.json"), (c) => {
+  await editJson(join(cfgTs, "deno.json"), (c) => {
     c["links"] = [tgts, ftFlags];
   });
 }
@@ -86,7 +86,7 @@ async function main(): Promise<void> {
       const cfgTs = await copyPackage("cfg-ts", join(work, "fixA"));
       const tgts = await copyPackage("tgts", join(work, "fixA"));
       const ftFlags = await copyPackage("ft-flags", join(work, "fixA"));
-      for (const file of ["deno.json", "deno.local.json"]) {
+      for (const file of ["deno.json"]) {
         // deno-lint-ignore no-await-in-loop -- two files, and order keeps the failure readable
         await editJson(join(cfgTs, file), (c) => {
           const imports = c["imports"] as Record<string, string>;
