@@ -138,6 +138,20 @@ async function consume(work: string, project: string, runtime: string): Promise<
 }
 
 /** The text of a built distribution's read implementation, however it was emitted. */
+/**
+ * Source with its comments removed, so a search sees code.
+ *
+ * Deliberately not a parse. This runs over a built file to answer one question
+ * about which implementation is in it, and the two comment forms are simpler to
+ * strip than the file is to parse. A string containing what looks like a comment
+ * would be mishandled, and none of the three markers is ever inside one.
+ */
+function withoutComments(source: string): string {
+  return source
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^[ \t]*\/\/.*$/gm, "");
+}
+
 async function readImplementation(project: string, runtime: string): Promise<string> {
   const candidates = [
     join(project, "target", runtime, "src", "read.ts"),
@@ -197,7 +211,11 @@ Deno.test("one source, three distributions, one output", async (t) => {
         node: "node:fs/promises",
       };
       for (const [runtime, marker] of Object.entries(own)) {
-        const text = await readImplementation(project, runtime);
+        // Comments stripped first. The question is which implementation shipped,
+        // and a doc paragraph naming an API is not that API: the module doc in
+        // `src/read.ts` explains the choice by naming all three, so a raw text
+        // search reports every distribution as carrying every one of them.
+        const text = withoutComments(await readImplementation(project, runtime));
         assertStringIncludes(text, marker, `${runtime} should carry ${marker}`);
         for (const [other, otherMarker] of Object.entries(own)) {
           if (other === runtime) continue;

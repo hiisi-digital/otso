@@ -33,8 +33,18 @@ import type { TargetId } from "@hiisi/tgts";
 import { ConfigError } from "./types.ts";
 import type { Distribution, OtsoConfig } from "./types.ts";
 
-/** The manifest names otso looks for, nearest first. */
-export const CONFIG_FILE_NAMES = ["deno.json", "deno.jsonc"] as const;
+/**
+ * The manifest names otso looks for, in the order it prefers them.
+ *
+ * `deno.local.json` first, which is the workspace convention for a manifest that
+ * resolves siblings not published yet. Without it a project whose dependencies
+ * are still local builds by hand and fails under otso, because the staged tree
+ * gets the published-shape manifest and asks a registry for something that is
+ * only on disk. It is a development file and is expected to be absent in a
+ * release, at which point the list falls through to the next name and nothing
+ * about the build changes.
+ */
+export const CONFIG_FILE_NAMES = ["deno.local.json", "deno.json", "deno.jsonc"] as const;
 
 /** Where distributions land when the manifest does not say. */
 export const DEFAULT_DIST_DIR = "target";

@@ -14,7 +14,9 @@
     "@hiisi/ft-flags": "jsr:@hiisi/ft-flags@^0.2.0",
     "@hiisi/tgts": "jsr:@hiisi/tgts@^0.2.0",
     "@hiisi/cfg-ts": "jsr:@hiisi/cfg-ts@^0.1.0",
-    "@hiisi/deno-dist": "jsr:@hiisi/deno-dist@^0.3.1"
+    "@hiisi/deno-dist": "jsr:@hiisi/deno-dist@^0.3.1",
+    "@hiisi/deno-dist/cli": "../deno-dist/src/cli.ts",
+    "@hiisi/shimp": "../shimp/mod.ts"
   },
   "lint": {
     "include": [

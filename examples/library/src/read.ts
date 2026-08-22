@@ -1,25 +1,33 @@
 // deno-lint-ignore-file no-redeclare -- three declarations of one name under
 // conditions that cannot both hold is the pattern; the build leaves one.
 /**
- * Reading a file, three ways, one of which survives each build.
+ * Reading a file, and what a marked arm is allowed to contain.
  *
- * The declarations below are the same function three times under conditions
- * that cannot both hold. That is the shape `@cfg` is for and it is deliberately
- * not valid TypeScript as it stands: two `readText` in one file is a duplicate
- * identifier, and any compiler pointed at this file says so. It compiles once
- * the build has chosen a target and removed the other two, which is what
- * `otso check` checks and why checking the source directly is not the same
- * thing.
+ * Each of the three below is the target's own file read. Deno and bun have one
+ * that skips a layer, node's is `node:fs`, and none of the three exists on the
+ * other two. That is what makes this a case for `@cfg`: there is no shared API
+ * to put them behind, and marking them lets each distribution carry its own
+ * without the others riding along or a branch at run time to choose.
  *
- * Reaching for a runtime's own global costs one line of configuration: `deno
- * check`, which is what `otso check` runs over each staged tree, knows nothing
- * about `Bun` until the manifest's `compilerOptions.types` says where to find
- * it. That line is in this example's deno.json, and without it the bun target
- * is the only one that fails to check.
+ * **A `node:` import inside a `target("node")` arm is not the leak it looks
+ * like.** The thing to avoid is reaching for one runtime's namespace as the
+ * cross-runtime answer, which puts the question of what differs into every
+ * consumer. Inside an arm that only ships to node, `node:fs` is simply node's
+ * code, and it is the same category as `Deno.readTextFile` in the arm above it.
  *
- * All three return the same string for the same file. The reason to have three
- * is that each runtime's own path is the quick one on that runtime, and a
- * distribution that carries only its own has nothing to decide at run time.
+ * Where a shared API does exist, use it and write no arms at all. `@hiisi/shimp`
+ * covers the runtime surface and `src/report.ts` is what that looks like: no
+ * marks, no imports of anyone's namespace, one file shipped unchanged to three.
+ *
+ * As it stands this file is deliberately not valid TypeScript: three `readText`
+ * in one file is a duplicate identifier and any compiler says so. It compiles
+ * once the build has chosen a target and removed the other two, which is what
+ * `otso check` checks over each staged tree, and why checking the source
+ * directly is not the same thing.
+ *
+ * Reaching for a runtime's own global costs one line of configuration. `deno
+ * check` knows nothing about `Bun` until the manifest's `compilerOptions.types`
+ * says where to find it, and that line is in this example's deno.json.
  */
 
 //@cfg(target("deno"))
