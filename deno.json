@@ -17,10 +17,7 @@
     "@hiisi/tgts": "jsr:@hiisi/tgts@^0.2.0",
     "@hiisi/cfg-ts": "jsr:@hiisi/cfg-ts@^0.1.0",
     "@hiisi/deno-dist": "jsr:@hiisi/deno-dist@^0.4.0",
-    "@hiisi/shimp": "jsr:@hiisi/shimp@^0.1.0",
-    "@hiisi/viola": "jsr:@hiisi/viola@^0.3.1",
-    "@hiisi/viola-default-lints": "jsr:@hiisi/viola-default-lints@^0.3.1",
-    "@hiisi/viola-grammar-ts": "jsr:@hiisi/viola-grammar-ts@^0.3.2"
+    "@hiisi/shimp": "jsr:@hiisi/shimp@^0.1.0"
   },
   "lint": {
     "include": [
