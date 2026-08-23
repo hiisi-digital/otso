@@ -47,6 +47,23 @@ export const CONFIG_FILE_NAMES = ["deno.json", "deno.jsonc"] as const;
 export const DEFAULT_DIST_DIR = "target";
 
 /**
+ * The manifest keys this package reads.
+ *
+ * Two files read the same keys off `deno.json`, and a key spelled out in both
+ * is one that can be renamed in one place and silently stop matching in the
+ * other. The staging step deletes `otso` from the manifest it writes, so the
+ * two have to agree about what that key is called or the section ships.
+ */
+export const MANIFEST = {
+  /** Where this package's own configuration lives. */
+  otso: "otso",
+  /** Per-distribution settings, as `deno.json` spells them. */
+  dist: "dist",
+  /** Feature list, both global and per distribution. */
+  features: "features",
+} as const;
+
+/**
  * Directories never staged, whatever the configuration says.
  *
  * The dist directory is on this list for a reason worth stating: staging copies
@@ -134,11 +151,11 @@ export function parseConfig(
 ): OtsoConfig {
   const raw = parseManifest(text);
   const distDir = readDistDir(raw);
-  const otso = asRecord(raw["otso"]) ?? {};
-  const globalFeatures = readFeatureList(otso["features"], "otso.features");
+  const otso = asRecord(raw[MANIFEST.otso]) ?? {};
+  const globalFeatures = readFeatureList(otso[MANIFEST.features], "otso.features");
   const perDistribution = asRecord(otso["distributions"]) ?? {};
 
-  const dist = asRecord(raw["dist"]);
+  const dist = asRecord(raw[MANIFEST.dist]);
   if (dist === undefined || Object.keys(dist).length === 0) {
     throw new ConfigError(
       "no distributions declared. Add a `dist` block naming at least one, for example " +
@@ -168,7 +185,7 @@ export function parseConfig(
     const target = readTarget(own["target"] ?? entry["runtime"], name);
     const features = new Set<FeatureId>([
       ...globalFeatures,
-      ...readFeatureList(own["features"], `otso.distributions.${name}.features`),
+      ...readFeatureList(own[MANIFEST.features], `otso.distributions.${name}.features`),
       ...on,
     ]);
     for (const feature of off) features.delete(feature);

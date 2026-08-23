@@ -18,6 +18,7 @@ import { join } from "@std/path";
 
 import { outputDirFor, removeStaging } from "./stage.ts";
 import type { Distribution, OtsoConfig } from "./types.ts";
+import { removeIfPresent } from "./utils/fs.ts";
 
 /** What a clean removed. */
 export interface CleanResult {
@@ -41,14 +42,4 @@ export async function clean(config: OtsoConfig): Promise<CleanResult> {
 /** The directory a clean would remove for `distribution`. */
 export function cleanTargetFor(config: OtsoConfig, distribution: Distribution): string {
   return join(config.projectDir, config.distDir, distribution.name);
-}
-
-async function removeIfPresent(path: string): Promise<boolean> {
-  try {
-    await Deno.remove(path, { recursive: true });
-    return true;
-  } catch (error) {
-    if (error instanceof Deno.errors.NotFound) return false;
-    throw error;
-  }
 }

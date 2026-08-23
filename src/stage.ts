@@ -19,8 +19,9 @@
 import { join, relative, resolve } from "@std/path";
 import { contextFromStrings, transformSource } from "@hiisi/cfg-ts";
 
-import { ALWAYS_EXCLUDED } from "./config.ts";
+import { ALWAYS_EXCLUDED, MANIFEST } from "./config.ts";
 import type { Distribution, OtsoConfig, StageDiagnostic, StageResult } from "./types.ts";
+import { removeIfPresent } from "./utils/fs.ts";
 
 /** Extensions the transformer is run over. Everything else is copied verbatim. */
 const TRANSFORMED_EXTENSIONS: readonly string[] = [".ts", ".tsx", ".mts", ".cts"];
@@ -138,7 +139,7 @@ async function writeStagedManifest(
 ): Promise<void> {
   const path = join(stagedDir, "deno.json");
   const raw = JSON.parse(await Deno.readTextFile(path)) as Record<string, unknown>;
-  const dist = raw["dist"] as Record<string, unknown>;
+  const dist = raw[MANIFEST.dist] as Record<string, unknown>;
   const staged = {
     ...raw,
     ...(raw["imports"] === undefined
@@ -147,7 +148,7 @@ async function writeStagedManifest(
     dist: { [distribution.name]: dist[distribution.name] },
     distDir: "../..",
   };
-  delete (staged as Record<string, unknown>)["otso"];
+  delete (staged as Record<string, unknown>)[MANIFEST.otso];
   await Deno.writeTextFile(path, `${JSON.stringify(staged, null, 2)}\n`);
 }
 
@@ -212,14 +213,6 @@ function isTransformed(path: string): boolean {
 function dirOf(path: string): string {
   const at = path.lastIndexOf("/");
   return at === -1 ? path : path.slice(0, at);
-}
-
-async function removeIfPresent(path: string): Promise<void> {
-  try {
-    await Deno.remove(path, { recursive: true });
-  } catch (error) {
-    if (!(error instanceof Deno.errors.NotFound)) throw error;
-  }
 }
 
 /** Remove every staged tree, leaving built distributions alone. */

@@ -76,6 +76,10 @@ export { clean, cleanTargetFor } from "./src/clean.ts";
 export type { CleanResult } from "./src/clean.ts";
 
 export { buildDistribution, denoDistCli } from "./src/dist.ts";
+// `buildDistribution` returns one of these, so a consumer that wants to name
+// what it got back needs the type. It was reachable only inside the package,
+// which made the return type unspellable from outside.
+export type { CommandResult } from "./src/process.ts";
 
 // =============================================================================
 // Output

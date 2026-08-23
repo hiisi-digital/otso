@@ -16,6 +16,7 @@ import { join } from "@std/path";
 import { parseConfig } from "../src/config.ts";
 import { outputDirFor, removeStaging, stage, stagedDirFor } from "../src/stage.ts";
 import type { OtsoConfig } from "../src/types.ts";
+import { exists } from "./helpers.ts";
 
 const MANIFEST = {
   name: "@scope/thing",
@@ -46,10 +47,6 @@ async function write(rel: string, text: string): Promise<void> {
   const path = join(root, rel);
   await Deno.mkdir(join(path, ".."), { recursive: true });
   await Deno.writeTextFile(path, text);
-}
-
-async function exists(path: string): Promise<boolean> {
-  return await Deno.stat(path).then(() => true).catch(() => false);
 }
 
 function configFor(overrides: Parameters<typeof parseConfig>[2] = {}): OtsoConfig {

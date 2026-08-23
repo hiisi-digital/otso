@@ -165,7 +165,7 @@ export function shouldLog(messageLevel: LogLevel, loggerLevel: LogLevel): boolea
  * @param level - The log level
  * @returns ANSI color code for the level
  */
-export function getLevelColor(level: LogLevel): string {
+function getLevelColor(level: LogLevel): string {
   switch (level) {
     case "debug":
       return COLORS.gray;
