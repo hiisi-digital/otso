@@ -1,6 +1,6 @@
 {
   "name": "@hiisi/otso",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Build one TypeScript codebase into deno, node and bun distributions, stripping what each runtime does not need.",
   "license": "MPL-2.0",
   "exports": {
