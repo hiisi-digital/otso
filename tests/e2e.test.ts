@@ -33,6 +33,8 @@ import { dirname, fromFileUrl, join, toFileUrl } from "@std/path";
 import { build } from "../src/build.ts";
 import { check } from "../src/check.ts";
 import { loadConfig } from "../src/config.ts";
+import { copyTree } from "./helpers.ts";
+import { type Ran, run } from "./helpers.ts";
 
 const REPO_ROOT = dirname(dirname(fromFileUrl(import.meta.url)));
 const LIBRARY = join(REPO_ROOT, "examples", "library");
@@ -50,39 +52,8 @@ console.log(JSON.stringify(s));
 
 const INPUT = "alpha\nbeta\ngamma\n";
 
-interface Ran {
-  readonly ok: boolean;
-  readonly stdout: string;
-  readonly stderr: string;
-}
-
-async function run(cmd: string, args: readonly string[], cwd: string): Promise<Ran> {
-  const { success, stdout, stderr } = await new Deno.Command(cmd, {
-    args: [...args],
-    cwd,
-    stdout: "piped",
-    stderr: "piped",
-  }).output();
-  const decoder = new TextDecoder();
-  return { ok: success, stdout: decoder.decode(stdout), stderr: decoder.decode(stderr) };
-}
-
 function assertRan(result: Ran, what: string): void {
   assert(result.ok, `${what} failed\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`);
-}
-
-async function copyTree(from: string, to: string): Promise<void> {
-  await Deno.mkdir(to, { recursive: true });
-  for await (const entry of Deno.readDir(from)) {
-    const src = join(from, entry.name);
-    const dest = join(to, entry.name);
-    if (entry.isDirectory) {
-      if (entry.name === "target") continue;
-      await copyTree(src, dest);
-    } else {
-      await Deno.copyFile(src, dest);
-    }
-  }
 }
 
 /** Install a distribution the way a consumer does, run the program, return stdout. */

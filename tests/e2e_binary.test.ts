@@ -19,6 +19,8 @@ import { dirname, fromFileUrl, join } from "@std/path";
 
 import { build } from "../src/build.ts";
 import { loadConfig } from "../src/config.ts";
+import { copyTree } from "./helpers.ts";
+import { run } from "./helpers.ts";
 
 const REPO_ROOT = dirname(dirname(fromFileUrl(import.meta.url)));
 const BINARY = join(REPO_ROOT, "examples", "binary");
@@ -29,37 +31,6 @@ const ENTRY: Readonly<Record<string, string>> = {
   bun: "cli.ts",
   deno: "cli.ts",
 };
-
-interface Ran {
-  readonly ok: boolean;
-  readonly stdout: string;
-  readonly stderr: string;
-  readonly code: number;
-}
-
-async function run(cmd: string, args: readonly string[]): Promise<Ran> {
-  const { success, code, stdout, stderr } = await new Deno.Command(cmd, {
-    args: [...args],
-    stdout: "piped",
-    stderr: "piped",
-  }).output();
-  const decoder = new TextDecoder();
-  return { ok: success, code, stdout: decoder.decode(stdout), stderr: decoder.decode(stderr) };
-}
-
-async function copyTree(from: string, to: string): Promise<void> {
-  await Deno.mkdir(to, { recursive: true });
-  for await (const entry of Deno.readDir(from)) {
-    const src = join(from, entry.name);
-    const dest = join(to, entry.name);
-    if (entry.isDirectory) {
-      if (entry.name === "target") continue;
-      await copyTree(src, dest);
-    } else {
-      await Deno.copyFile(src, dest);
-    }
-  }
-}
 
 /** Build the tool once and hand every case the same output to look at. */
 async function built(): Promise<{ project: string; fixture: string; work: string }> {

@@ -20,8 +20,16 @@ import { createLogger, formatDuration } from "./src/utils/logger.ts";
 import { ConfigError } from "./src/types.ts";
 import type { CliArgs, CliCommand } from "./src/types.ts";
 
-/** Kept in step with the version in deno.json by hand, and checked by a test. */
-export const VERSION = "0.1.0";
+import manifest from "./deno.json" with { type: "json" };
+
+/**
+ * The version, read from the manifest rather than repeated here.
+ *
+ * It used to be a literal kept in step by hand, and it drifted: the manifest
+ * said 0.1.1 while `otso --version` said 0.1.0. The test that caught it is
+ * still worth keeping, but a value with one source cannot disagree with itself.
+ */
+export const VERSION: string = manifest.version;
 
 /** What `otso --help` prints. */
 export const HELP_TEXT = `otso - cross-runtime TypeScript builds from one source

@@ -16,6 +16,7 @@ import { clean } from "../src/clean.ts";
 import { parseConfig } from "../src/config.ts";
 import { STAGING_DIR_NAME } from "../src/stage.ts";
 import type { OtsoConfig } from "../src/types.ts";
+import { exists } from "./helpers.ts";
 
 const MANIFEST = JSON.stringify({
   name: "@scope/thing",
@@ -28,10 +29,6 @@ const MANIFEST = JSON.stringify({
 
 let root = "";
 let config: OtsoConfig;
-
-async function exists(path: string): Promise<boolean> {
-  return await Deno.stat(path).then(() => true).catch(() => false);
-}
 
 async function place(...rels: string[]): Promise<void> {
   await Promise.all(rels.map(async (rel) => {

@@ -1,6 +1,6 @@
 {
   "name": "@hiisi/otso",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Build one TypeScript codebase into deno, node and bun distributions, stripping what each runtime does not need.",
   "license": "MPL-2.0",
   "exports": {
@@ -17,7 +17,10 @@
     "@hiisi/tgts": "jsr:@hiisi/tgts@^0.2.0",
     "@hiisi/cfg-ts": "jsr:@hiisi/cfg-ts@^0.1.0",
     "@hiisi/deno-dist": "jsr:@hiisi/deno-dist@^0.4.0",
-    "@hiisi/shimp": "jsr:@hiisi/shimp@^0.1.0"
+    "@hiisi/shimp": "jsr:@hiisi/shimp@^0.1.0",
+    "@hiisi/viola": "jsr:@hiisi/viola@^0.4.0",
+    "@hiisi/viola-default-lints": "jsr:@hiisi/viola-default-lints@^0.4.0",
+    "@hiisi/viola-grammar-ts": "jsr:@hiisi/viola-grammar-ts@^0.4.0"
   },
   "lint": {
     "include": [
@@ -67,7 +70,7 @@
   "tasks": {
     "test": "deno test --allow-read --allow-write --allow-env --allow-run --allow-net tests/",
     "test:watch": "deno test --allow-read --allow-write --allow-env --allow-run --allow-net --watch tests/",
-    "lint": "deno run -A --min-dep-age=0 jsr:@hiisi/viola-cli@^0.3.1 --project . --include .",
+    "lint": "deno run -A gate.ts",
     "lint:fix": "deno lint --fix",
     "fmt": "deno fmt",
     "fmt:check": "deno fmt --check",
@@ -97,7 +100,10 @@
     "../cfg-ts",
     "../deno-dist",
     "../shimp",
-    "../onlywhen"
+    "../onlywhen",
+    "../viola",
+    "../viola-default-lints",
+    "../viola-grammar-ts"
   ],
   "minimumDependencyAge": 0
 }
