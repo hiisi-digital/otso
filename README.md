@@ -40,9 +40,6 @@ tree it is given and calls it.
 
 ## Installation
 
-Nothing here is published yet, so there is no install line that works. When it
-is, this is what it will be:
-
 ```bash
 # deno, as a command
 deno install --global --allow-read --allow-write --allow-env --allow-run --allow-net -n otso jsr:@hiisi/otso/cli
@@ -51,7 +48,7 @@ deno install --global --allow-read --allow-write --allow-env --allow-run --allow
 deno add jsr:@hiisi/otso
 ```
 
-Until then, run it from a checkout:
+From a checkout, without installing:
 
 ```bash
 deno run -A cli.ts build --dir path/to/project
@@ -150,11 +147,8 @@ the entry point carries the right shebang for its runtime, and the file is
 executable. `tests/e2e_binary.test.ts` covers both halves and they run rather
 than sitting ignored.
 
-What does not: nothing here is published. `@hiisi/cfg-ts` asks for
-`@hiisi/ft-flags@^0.2.0` and jsr carries 0.1.2, which is a version wall rather
-than a defect. `probes/upstream_version_wall.ts` demonstrates it and shows the
-two one-line fixes, either of which clears it. Until the packages ship, the
-`links` block in `deno.json` is what resolves them.
+Every package this reaches for is on jsr, and the `links` block in `deno.json`
+is what points at the checkouts beside it while they are being worked on.
 
 ## Related packages
 
