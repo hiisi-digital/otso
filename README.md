@@ -159,21 +159,6 @@ is what points at the checkouts beside it while they are being worked on.
 - [`@hiisi/shimp`](https://github.com/hiisi-digital/shimp) covers the differences that need no marker
 - [`@hiisi/onlywhen`](https://jsr.io/@hiisi/onlywhen) picks between them at runtime, where a build-time answer will not do
 
-## A note on coding agents
-
-We do not recommend using coding agents with this codebase.
-
-If you still choose to use a coding agent:
-
-- Be aware of the environmental and social impact of large-scale model inference.
-  Minimise agent use where it is not needed. Be responsible.
-- Only use an agent if you yourself understand the architecture. Do not use an
-  agent because you do not understand; you will waste time and energy, both
-  yours and the planet's.
-
-The recommendation stands: do this work yourself unless you know what you are doing
-and why.
-
 ## Support
 
 Whether you use this project, have learned something from it, or just like it,
